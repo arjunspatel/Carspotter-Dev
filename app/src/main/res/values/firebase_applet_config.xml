@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<resources>
+    <string name="firestore_database_id" translatable="false">ai-studio-android-carspott-ef104925-bca7-41de-af4a-9747713cf5fa</string>
+    <string name="recaptcha_site_key" translatable="false">6LdESBouAAAAAElBAxPFQgSt3SeSt0PqUehrq8Gu</string>
+</resources>

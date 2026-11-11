@@ -1,0 +1,8 @@
+{
+  "firestore": [
+    {
+      "database": "ai-studio-android-carspott-ef104925-bca7-41de-af4a-9747713cf5fa",
+      "rules": "firestore.rules"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "CarSpotter",
+  "description": "Snap cars, identify specs with AI, verify authenticity, and collect rare vehicles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
