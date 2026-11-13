@@ -73,6 +73,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.example.R
+import com.example.ui.components.CarSpotImage
 import com.example.model.CarSpot
 import com.example.model.RarityTier
 import com.example.ui.CarSpotterViewModel
@@ -376,47 +377,10 @@ fun MapSpotScreen(
                                 .clip(RoundedCornerShape(14.dp))
                                 .border(1.dp, CarbonBorder, RoundedCornerShape(14.dp))
                         ) {
-                            when {
-                                spot.photoUri == "res:car_porsche" -> {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.car_porsche),
-                                        contentDescription = spot.model,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                                spot.photoUri == "res:car_ferrari" -> {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.car_ferrari),
-                                        contentDescription = spot.model,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                                spot.photoUri != null -> {
-                                    AsyncImage(
-                                        model = spot.photoUri,
-                                        contentDescription = spot.model,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                                else -> {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(CarbonCardElevated),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.DirectionsCar,
-                                            contentDescription = null,
-                                            tint = TurboAmber,
-                                            modifier = Modifier.size(32.dp)
-                                        )
-                                    }
-                                }
-                            }
+                            CarSpotImage(
+                                car = spot,
+                                modifier = Modifier.fillMaxSize()
+                            )
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))

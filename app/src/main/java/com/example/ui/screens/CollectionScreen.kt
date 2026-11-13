@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.ui.components.CarSpotImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -442,47 +443,10 @@ fun CarCollectionCard(
                     .fillMaxWidth()
                     .height(160.dp)
             ) {
-                when {
-                    car.photoUri == "res:car_porsche" -> {
-                        Image(
-                            painter = painterResource(id = R.drawable.car_porsche),
-                            contentDescription = car.model,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    car.photoUri == "res:car_ferrari" -> {
-                        Image(
-                            painter = painterResource(id = R.drawable.car_ferrari),
-                            contentDescription = car.model,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    car.photoUri != null -> {
-                        AsyncImage(
-                            model = car.photoUri,
-                            contentDescription = car.model,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    else -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(CarbonCardElevated),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DirectionsCar,
-                                contentDescription = null,
-                                tint = TextMuted,
-                                modifier = Modifier.size(48.dp)
-                            )
-                        }
-                    }
-                }
+                CarSpotImage(
+                    car = car,
+                    modifier = Modifier.fillMaxSize()
+                )
 
                 // Gradient Vignette
                 Box(

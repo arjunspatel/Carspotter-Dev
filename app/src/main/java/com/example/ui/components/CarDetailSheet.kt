@@ -139,47 +139,10 @@ fun CarDetailSheet(
                     .clip(RoundedCornerShape(18.dp))
                     .border(1.dp, CarbonBorder, RoundedCornerShape(18.dp))
             ) {
-                when {
-                    car.photoUri == "res:car_porsche" -> {
-                        Image(
-                            painter = painterResource(id = R.drawable.car_porsche),
-                            contentDescription = car.model,
-                            modifier = Modifier.matchParentSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    car.photoUri == "res:car_ferrari" -> {
-                        Image(
-                            painter = painterResource(id = R.drawable.car_ferrari),
-                            contentDescription = car.model,
-                            modifier = Modifier.matchParentSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    car.photoUri != null -> {
-                        AsyncImage(
-                            model = car.photoUri,
-                            contentDescription = car.model,
-                            modifier = Modifier.matchParentSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    else -> {
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .background(CarbonCardElevated),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DirectionsCar,
-                                contentDescription = null,
-                                tint = TextMuted,
-                                modifier = Modifier.size(60.dp)
-                            )
-                        }
-                    }
-                }
+                CarSpotImage(
+                    car = car,
+                    modifier = Modifier.matchParentSize()
+                )
 
                 // Points Badge
                 Box(

@@ -2,280 +2,608 @@ package com.example.ai
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.util.Log
 import com.example.model.AntiCheatResult
 import com.example.model.CarSpot
 import com.example.model.RarityTier
-import kotlinx.coroutines.delay
+import com.google.firebase.Firebase
+import com.google.firebase.ai.ai
+import com.google.firebase.ai.type.GenerativeBackend
+import com.google.firebase.ai.type.Schema
+import com.google.firebase.ai.type.content
+import com.google.firebase.ai.type.generationConfig
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.util.UUID
-import kotlin.random.Random
+
+private const val TAG = "CarRecognitionEngine"
+private const val AI_TIMEOUT_MS = 60_000L
+
+enum class RecognitionStatus {
+    SUCCESS,
+    REJECTED_CHEAT,
+    NO_VEHICLE,
+    NETWORK_OR_TIMEOUT,
+    AI_SERVICE_ERROR
+}
 
 data class RecognitionResult(
     val carSpot: CarSpot?,
     val antiCheatResult: AntiCheatResult,
     val isSuccess: Boolean,
+    val status: RecognitionStatus = if (isSuccess) RecognitionStatus.SUCCESS else RecognitionStatus.REJECTED_CHEAT,
     val errorMessage: String? = null
 )
 
 class CarRecognitionEngine(private val context: Context) {
 
-    // Comprehensive catalog of authentic identifiable vehicles
-    private val knownVehicles = listOf(
-        CarTemplate(
-            make = "Lamborghini",
-            model = "Revuelto",
-            year = 2024,
-            trim = "HPEV Carbon",
-            rarityTier = RarityTier.LEGENDARY,
-            rarityScore = 98,
-            basePoints = 1950,
-            horsepower = 1001,
-            zeroToSixtyMph = 2.5,
-            topSpeedMph = 217,
-            priceUsd = 608358,
-            engineType = "6.5L Naturally Aspirated V12 + 3 Axial Flux Motors",
-            drivetrain = "AWD • 8-Speed Transverse Dual-Clutch",
-            description = "Sant'Agata Bolognese's first High Performance Electrified Vehicle (HPEV) with carbon monofuselage.",
-            trivia = "Features a rev limiter reaching a spine-tingling 9,500 RPM.",
-            defaultLocation = "Ocean Drive, Miami Beach, FL",
-            lat = 25.7781,
-            lng = -80.1313
+    // Streamlined schema embedding autonomous anti-cheat detection + specs into a single Gemini pass.
+    private val carSchema = Schema.obj(
+        properties = mapOf(
+            "isRealCar" to Schema.boolean(
+                description = "TRUE only if a real physical motor vehicle is visible in the real world. FALSE if non-car (wall, floor, foot, person), screen, or toy."
+            ),
+            "isScreenOrDisplay" to Schema.boolean(
+                description = "TRUE if photographing a monitor, phone, tablet, TV screen, or printed photo of a car."
+            ),
+            "isToyOrModel" to Schema.boolean(
+                description = "TRUE if this is a toy car, Hot Wheels, RC car, or die-cast scale model."
+            ),
+            "detectedSubject" to Schema.string(
+                description = "Brief description of the subject seen (e.g. 'Porsche 911 GT3 RS', 'Sidewalk and shoe', 'Monitor displaying a Ferrari')."
+            ),
+            "antiCheatVerdict" to Schema.string(
+                description = "One of: 'VERIFIED REAL VEHICLE', 'REJECTED: Display Screen Detected', 'REJECTED: Toy/Scale Model Detected', 'REJECTED: Non-Vehicle Detected'."
+            ),
+            "antiCheatDetails" to Schema.string(
+                description = "Brief 1-sentence reason for the authenticity verdict."
+            ),
+            "make" to Schema.string(description = "Car manufacturer (e.g. Porsche, Ferrari, Ford, Toyota)", nullable = true),
+            "model" to Schema.string(description = "Specific car model (e.g. 911 GT3 RS, Mustang GT, Supra)", nullable = true),
+            "year" to Schema.integer(description = "Estimated model year", nullable = true),
+            "trim" to Schema.string(description = "Trim or package (e.g. Z06, Competition, Base)", nullable = true),
+            "rarityTier" to Schema.string(description = "COMMON, UNCOMMON, RARE, EXOTIC, or LEGENDARY", nullable = true),
+            "rarityScore" to Schema.integer(description = "Rarity score from 1 to 100", nullable = true),
+            "horsepower" to Schema.integer(description = "Estimated horsepower (HP)", nullable = true),
+            "zeroToSixtyMph" to Schema.double(description = "Estimated 0-60 mph time in seconds", nullable = true),
+            "topSpeedMph" to Schema.integer(description = "Estimated top speed in mph", nullable = true),
+            "estimatedPriceUsd" to Schema.integer(description = "Estimated MSRP in USD", nullable = true),
+            "engineType" to Schema.string(description = "Engine configuration (e.g. 4.0L Flat-6)", nullable = true),
+            "drivetrain" to Schema.string(description = "RWD, AWD, or FWD", nullable = true),
+            "trivia" to Schema.string(description = "Short automotive trivia fact", nullable = true)
         ),
-        CarTemplate(
-            make = "McLaren",
-            model = "750S Spider",
-            year = 2024,
-            trim = "Performance Spec",
-            rarityTier = RarityTier.EXOTIC,
-            rarityScore = 91,
-            basePoints = 900,
-            horsepower = 740,
-            zeroToSixtyMph = 2.7,
-            topSpeedMph = 206,
-            priceUsd = 345000,
-            engineType = "4.0L Twin-Turbo Flat-Plane V8 (M840T)",
-            drivetrain = "RWD • 7-Speed Seamless Shift Gearbox",
-            description = "Lightest and most powerful series-production McLaren road car with hydraulic Proactive Chassis Control III.",
-            trivia = "The retractable hardtop opens or closes in an astonishing 11 seconds at up to 31 mph.",
-            defaultLocation = "Casino Square, Monte Carlo, Monaco",
-            lat = 43.7384,
-            lng = 7.4246
-        ),
-        CarTemplate(
-            make = "BMW",
-            model = "M4 CSL",
-            year = 2023,
-            trim = "Competition Sport Lightweight",
-            rarityTier = RarityTier.RARE,
-            rarityScore = 84,
-            basePoints = 650,
-            horsepower = 543,
-            zeroToSixtyMph = 3.6,
-            topSpeedMph = 191,
-            priceUsd = 140895,
-            engineType = "3.0L Twin-Power Turbo Inline-6 (S58)",
-            drivetrain = "RWD • 8-Speed M Steptronic",
-            description = "Track-focused limited edition with rear-seat delete, carbon-fiber hood, and laser taillights.",
-            trivia = "Lapped the Nürburgring Nordschleife in 7 minutes 15.68 seconds, the fastest production BMW ever recorded.",
-            defaultLocation = "Nürburgring Nordschleife, Germany",
-            lat = 50.3356,
-            lng = 6.9475
-        ),
-        CarTemplate(
-            make = "Chevrolet",
-            model = "Corvette Z06",
-            year = 2024,
-            trim = "Z07 Performance Package",
-            rarityTier = RarityTier.RARE,
-            rarityScore = 79,
-            basePoints = 500,
-            horsepower = 670,
-            zeroToSixtyMph = 2.6,
-            topSpeedMph = 189,
-            priceUsd = 128500,
-            engineType = "5.5L Flat-Plane Crank Naturally Aspirated V8 (LT6)",
-            drivetrain = "RWD • 8-Speed Dual-Clutch Tremec",
-            description = "American supercar featuring the highest-horsepower naturally aspirated production V8 in history.",
-            trivia = "Engine redlines at 8,600 RPM with an F1-inspired acoustic signature.",
-            defaultLocation = "Circuit of the Americas, Austin, TX",
-            lat = 30.1328,
-            lng = -97.6411
-        ),
-        CarTemplate(
-            make = "Nissan",
-            model = "GT-R Nismo",
-            year = 2024,
-            trim = "Special Edition",
-            rarityTier = RarityTier.RARE,
-            rarityScore = 86,
-            basePoints = 700,
-            horsepower = 600,
-            zeroToSixtyMph = 2.5,
-            topSpeedMph = 205,
-            priceUsd = 221090,
-            engineType = "3.8L Twin-Turbo Handbuilt V6 (VR38DETT)",
-            drivetrain = "ATTESA E-TS All-Wheel Drive",
-            description = "The definitive 'Godzilla' fitted with GT3 racecar turbochargers and carbon-ceramic Brembo brakes.",
-            trivia = "Every VR38DETT engine is hand-assembled in a clean room by one of only five Takumi master craftsmen.",
-            defaultLocation = "Daikoku Futo Parking, Yokohama, Japan",
-            lat = 35.4529,
-            lng = 139.6784
-        ),
-        CarTemplate(
-            make = "Ford",
-            model = "Mustang Dark Horse",
-            year = 2024,
-            trim = "Handling Pack",
-            rarityTier = RarityTier.UNCOMMON,
-            rarityScore = 52,
-            basePoints = 250,
-            horsepower = 500,
-            zeroToSixtyMph = 3.7,
-            topSpeedMph = 168,
-            priceUsd = 62180,
-            engineType = "5.0L Coyote Naturally Aspirated V8 (Gen 4)",
-            drivetrain = "RWD • Tremec 6-Speed Manual with 3D-printed titanium knob",
-            description = "The first new Mustang performance series in 21 years, built with forged connecting rods from the Shelby GT500.",
-            trivia = "Equipped with segment-first electronic drift brake developed in partnership with drift champion Vaughn Gittin Jr.",
-            defaultLocation = "Woodward Avenue, Detroit, MI",
-            lat = 42.4851,
-            lng = -83.1446
-        ),
-        CarTemplate(
-            make = "Bugatti",
-            model = "Chiron Super Sport",
-            year = 2023,
-            trim = "Pur Sport Aerolight",
-            rarityTier = RarityTier.LEGENDARY,
-            rarityScore = 100,
-            basePoints = 2500,
-            horsepower = 1578,
-            zeroToSixtyMph = 2.2,
-            topSpeedMph = 273,
-            priceUsd = 3900000,
-            engineType = "8.0L Quad-Turbo W16 (64 Valves)",
-            drivetrain = "Permanent AWD • 7-Speed Dual-Clutch",
-            description = "The pinnacle of internal combustion hypercars, engineered for mind-bending longtail aerodynamic stability.",
-            trivia = "Pumps 1,000 liters of coolant per minute through its massive quad-turbo cooling radiators.",
-            defaultLocation = "Place Vendôme, Paris, France",
-            lat = 48.8675,
-            lng = 2.3294
+        optionalProperties = listOf(
+            "make", "model", "year", "trim",
+            "rarityTier", "rarityScore", "horsepower",
+            "zeroToSixtyMph", "topSpeedMph", "estimatedPriceUsd",
+            "engineType", "drivetrain", "trivia"
         )
     )
 
-    /**
-     * Inspects image and performs real-time anti-cheat analysis + vehicle telemetry lookup.
-     */
-    suspend fun analyzeVehicleImage(
-        photoUri: String?,
-        simulatedCheatMode: String = "AUTHENTIC" // "AUTHENTIC", "SCREEN_CHEAT", "TOY_CHEAT"
-    ): RecognitionResult {
-        // Realistic multi-stage AI inference latency
-        delay(1400)
-
-        // Step 1: Anti-Cheat Verification
-        val antiCheat = when (simulatedCheatMode) {
-            "SCREEN_CHEAT" -> {
-                AntiCheatResult(
-                    isAuthentic = false,
-                    confidence = 0.94f,
-                    verdict = "REJECTED: Display Screen Detected",
-                    details = "Artificial pixel-grid moiré patterns and monitor bezel edges detected. Only genuine physical vehicle sightings are permitted on the leaderboard.",
-                    detectionFlags = listOf("Moiré Interference", "Screen Refresh Flicker", "LCD Pixel Substructure")
-                )
+    private val geminiModel by lazy {
+        Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
+            modelName = "gemini-3.8-flash",
+            generationConfig = generationConfig {
+                responseMimeType = "application/json"
+                responseSchema = carSchema
+                temperature = 0.2f
             }
-            "TOY_CHEAT" -> {
-                AntiCheatResult(
-                    isAuthentic = false,
-                    confidence = 0.91f,
-                    verdict = "REJECTED: Miniature / Die-cast Model Detected",
-                    details = "Extreme shallow focal plane and surface macro-grain anomalies indicate a scale model or toy rather than a real full-sized motor vehicle.",
-                    detectionFlags = listOf("Scale Disproportion", "Macro Depth Distortion", "Artificial Mold Lines")
-                )
-            }
-            else -> {
-                // Pass authentic
-                AntiCheatResult(
-                    isAuthentic = true,
-                    confidence = 0.985f,
-                    verdict = "AUTHENTICITY VERIFIED: Real-World Vehicle Sighting",
-                    details = "Multi-point sensor validation passed: Continuous natural outdoor ambient radiance, asphalt texture reflections, and true spatial parallax confirmed.",
-                    detectionFlags = listOf("Natural Lighting Pass", "Shadow Depth Pass", "Zero Screen Moiré")
-                )
-            }
-        }
-
-        if (!antiCheat.isAuthentic) {
-            return RecognitionResult(
-                carSpot = null,
-                antiCheatResult = antiCheat,
-                isSuccess = false,
-                errorMessage = antiCheat.details
-            )
-        }
-
-        // Step 2: Select or match vehicle telemetry
-        val template = knownVehicles.random()
-        val randomBonus = Random.nextInt(20, 80)
-        val finalPoints = template.basePoints + randomBonus
-
-        val spot = CarSpot(
-            id = UUID.randomUUID().toString(),
-            make = template.make,
-            model = template.model,
-            year = template.year,
-            trim = template.trim,
-            rarityTier = template.rarityTier,
-            rarityScore = template.rarityScore,
-            pointsAwarded = finalPoints,
-            horsepower = template.horsepower,
-            zeroToSixtyMph = template.zeroToSixtyMph,
-            topSpeedMph = template.topSpeedMph,
-            estimatedPriceUsd = template.priceUsd,
-            engineType = template.engineType,
-            drivetrain = template.drivetrain,
-            description = template.description,
-            trivia = template.trivia,
-            photoUri = photoUri ?: when (template.make.lowercase()) {
-                "ferrari" -> "res:car_ferrari"
-                "porsche" -> "res:car_porsche"
-                else -> null
-            },
-            locationName = template.defaultLocation,
-            latitude = template.lat,
-            longitude = template.lng,
-            timestamp = System.currentTimeMillis(),
-            isAuthentic = true,
-            antiCheatConfidence = antiCheat.confidence,
-            antiCheatDetails = antiCheat.details,
-            isFirstDiscovery = true
-        )
-
-        return RecognitionResult(
-            carSpot = spot,
-            antiCheatResult = antiCheat,
-            isSuccess = true
         )
     }
 
-    private data class CarTemplate(
-        val make: String,
-        val model: String,
-        val year: Int,
-        val trim: String,
-        val rarityTier: RarityTier,
-        val rarityScore: Int,
-        val basePoints: Int,
-        val horsepower: Int,
-        val zeroToSixtyMph: Double,
-        val topSpeedMph: Int,
-        val priceUsd: Long,
-        val engineType: String,
-        val drivetrain: String,
-        val description: String,
-        val trivia: String,
-        val defaultLocation: String,
-        val lat: Double,
-        val lng: Double
-    )
+    /**
+     * Fast autonomous vehicle recognition & AI anti-cheat evaluation:
+     * 1. Pre-checks active network capability cleanly in <5ms.
+     * 2. Uses already-captured in-memory Bitmap (or decodes from disk off main thread).
+     * 3. Local on-device CV filter catches completely blank/obscured frames.
+     * 4. Compresses frame to compact ~30KB 512px JPEG and invokes Gemini 3.8 Flash with a 60s timeout.
+     */
+    suspend fun analyzeVehicleImage(
+        photoUri: String?,
+        capturedBitmap: Bitmap? = null
+    ): RecognitionResult {
+        if (photoUri.isNullOrBlank() && capturedBitmap == null) {
+            return RecognitionResult(
+                carSpot = null,
+                antiCheatResult = AntiCheatResult(
+                    isAuthentic = false,
+                    confidence = 1.0f,
+                    verdict = "NO PHOTO CAPTURED",
+                    details = "Frame a vehicle in the viewfinder and tap the shutter button to capture a photo.",
+                    detectionFlags = listOf("Missing Image")
+                ),
+                isSuccess = false,
+                status = RecognitionStatus.NO_VEHICLE,
+                errorMessage = "Please frame a vehicle in the camera viewfinder and tap the shutter."
+            )
+        }
+
+        // Prepare bitmap + compact JPEG bytes off the main thread
+        val prepared = withContext(Dispatchers.Default) {
+            val bitmap = capturedBitmap ?: decodeBitmapFromUri(photoUri)
+            if (bitmap == null) {
+                return@withContext PreparedFrame.DecodeFailed
+            }
+
+            val (isUniform, surfaceType) = isUniformOrNonVehicleSurface(bitmap)
+            if (isUniform) {
+                return@withContext PreparedFrame.UniformSurface(surfaceType)
+            }
+
+            val maxDim = 512
+            val scale = minOf(maxDim.toFloat() / bitmap.width, maxDim.toFloat() / bitmap.height, 1.0f)
+            val scaledBitmap = if (scale < 1.0f) {
+                Bitmap.createScaledBitmap(
+                    bitmap,
+                    (bitmap.width * scale).toInt().coerceAtLeast(1),
+                    (bitmap.height * scale).toInt().coerceAtLeast(1),
+                    true
+                )
+            } else {
+                bitmap
+            }
+
+            val baos = ByteArrayOutputStream()
+            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 78, baos)
+            val jpegBytes = baos.toByteArray()
+            Log.d(TAG, "Prepared JPEG payload: ${scaledBitmap.width}x${scaledBitmap.height}, ${jpegBytes.size} bytes")
+            PreparedFrame.Ready(jpegBytes)
+        }
+
+        when (prepared) {
+            is PreparedFrame.DecodeFailed -> {
+                return RecognitionResult(
+                    carSpot = null,
+                    antiCheatResult = AntiCheatResult(
+                        isAuthentic = false,
+                        confidence = 1.0f,
+                        verdict = "IMAGE LOAD FAILED",
+                        details = "Could not decode the captured photo file. Please try snapping again.",
+                        detectionFlags = listOf("Decode Failure")
+                    ),
+                    isSuccess = false,
+                    status = RecognitionStatus.AI_SERVICE_ERROR,
+                    errorMessage = "Could not decode the captured photo. Please try snapping again."
+                )
+            }
+            is PreparedFrame.UniformSurface -> {
+                Log.w(TAG, "Local computer vision intercepted blank/uniform frame: ${prepared.surfaceType}")
+                return RecognitionResult(
+                    carSpot = null,
+                    antiCheatResult = AntiCheatResult(
+                        isAuthentic = false,
+                        confidence = 0.99f,
+                        verdict = "NO VEHICLE DETECTED",
+                        details = "Detected ${prepared.surfaceType} with no vehicle contours. Point your camera at an actual car.",
+                        detectionFlags = listOf("Uniform / Obscured Frame", "No Vehicle Contours")
+                    ),
+                    isSuccess = false,
+                    status = RecognitionStatus.NO_VEHICLE,
+                    errorMessage = "No vehicle detected (${prepared.surfaceType}). Point your camera at an actual car."
+                )
+            }
+            is PreparedFrame.Ready -> Unit
+        }
+
+        // Fast-fail if device is genuinely offline before waiting on cloud Gemini Vision
+        if (!hasInternetCapability()) {
+            Log.w(TAG, "Offline check triggered before Gemini call")
+            return RecognitionResult(
+                carSpot = null,
+                antiCheatResult = AntiCheatResult(
+                    isAuthentic = false,
+                    confidence = 1.0f,
+                    verdict = "NO INTERNET CONNECTION",
+                    details = "Your device has no active internet connection. Connect to Wi-Fi or mobile data and tap Retry to identify this photo.",
+                    detectionFlags = listOf("Device Offline", "No Internet Capability")
+                ),
+                isSuccess = false,
+                status = RecognitionStatus.NETWORK_OR_TIMEOUT,
+                errorMessage = "No internet connection detected. Connect to Wi-Fi or cellular data and retry."
+            )
+        }
+
+        val jpegBytes = (prepared as PreparedFrame.Ready).jpegBytes
+
+        try {
+            val prompt = """
+                Analyze this photo as an automotive identifier and anti-cheat judge.
+                
+                1. ANTI-CHEAT:
+                   - Set isScreenOrDisplay = true if photographing a monitor, TV, laptop, phone/tablet screen, or printed photo.
+                   - Set isToyOrModel = true if it is a toy car, Hot Wheels, RC car, or die-cast scale model.
+                2. VEHICLE VERIFICATION:
+                   - Set isRealCar = true ONLY if an actual, full-sized physical motor vehicle (car, truck, SUV, coupe, supercar, van) is visible in the real world (not a screen, not a toy, and not a non-car like a wall, sidewalk, foot, or indoor room).
+                3. IDENTIFICATION (if isRealCar = true):
+                   - Provide exact make, model, estimated year, trim, horsepower, 0-60 mph, top speed (mph), estimated USD price, engine, drivetrain, rarityTier, rarityScore, and a concise trivia fact.
+            """.trimIndent()
+
+            val response = withContext(Dispatchers.IO) {
+                withTimeout(AI_TIMEOUT_MS) {
+                    geminiModel.generateContent(
+                        content {
+                            inlineData(jpegBytes, "image/jpeg")
+                            text(prompt)
+                        }
+                    )
+                }
+            }
+
+            val jsonText = response.text
+            if (!jsonText.isNullOrBlank()) {
+                val json = JSONObject(jsonText)
+                val isRealCar = json.optBoolean("isRealCar", false)
+                val isScreen = json.optBoolean("isScreenOrDisplay", false)
+                val isToy = json.optBoolean("isToyOrModel", false)
+                val subject = json.optCleanString("detectedSubject", "Unknown subject")
+                val verdict = json.optCleanString("antiCheatVerdict", "")
+                val details = json.optCleanString("antiCheatDetails", "")
+
+                if (isScreen) {
+                    return RecognitionResult(
+                        carSpot = null,
+                        antiCheatResult = AntiCheatResult(
+                            isAuthentic = false,
+                            confidence = 0.98f,
+                            verdict = "REJECTED: Display Screen Detected",
+                            details = details.ifBlank {
+                                "Detected display screen patterns ($subject). Only physical vehicles spotted in person qualify."
+                            },
+                            detectionFlags = listOf("AI Screen Detection", "Display Moire / Glare")
+                        ),
+                        isSuccess = false,
+                        status = RecognitionStatus.REJECTED_CHEAT,
+                        errorMessage = "Screen cheat detected: photographing screens or photos of cars is not permitted."
+                    )
+                }
+
+                if (isToy) {
+                    return RecognitionResult(
+                        carSpot = null,
+                        antiCheatResult = AntiCheatResult(
+                            isAuthentic = false,
+                            confidence = 0.95f,
+                            verdict = "REJECTED: Miniature / Toy Model Detected",
+                            details = details.ifBlank {
+                                "Detected miniature scale model proportions ($subject). Only full-sized vehicles qualify."
+                            },
+                            detectionFlags = listOf("Scale Disproportion", "Toy / Die-Cast Model")
+                        ),
+                        isSuccess = false,
+                        status = RecognitionStatus.REJECTED_CHEAT,
+                        errorMessage = "Die-cast / toy model detected. Only full-sized physical vehicles qualify."
+                    )
+                }
+
+                if (!isRealCar) {
+                    return RecognitionResult(
+                        carSpot = null,
+                        antiCheatResult = AntiCheatResult(
+                            isAuthentic = false,
+                            confidence = 0.99f,
+                            verdict = "NO VEHICLE DETECTED",
+                            details = details.ifBlank {
+                                "No motor vehicle detected in photo (Saw: $subject). Frame a real car and try again."
+                            },
+                            detectionFlags = listOf("Subject: $subject", "No Automotive Target")
+                        ),
+                        isSuccess = false,
+                        status = RecognitionStatus.NO_VEHICLE,
+                        errorMessage = "No vehicle detected (Saw: $subject). Point your camera directly at a real car."
+                    )
+                }
+
+                // Authentic sighting verified by Gemini AI
+                val make = json.optCleanString("make", "Identified Car")
+                val model = json.optCleanString("model", "Vehicle")
+                val year = json.optCleanInt("year", 2024).coerceIn(1920, 2027)
+                val trim = json.optCleanString("trim", "Standard")
+                val tierStr = json.optCleanString("rarityTier", "RARE").uppercase()
+                val tier = try {
+                    RarityTier.valueOf(tierStr)
+                } catch (_: Exception) {
+                    RarityTier.RARE
+                }
+                val score = json.optCleanInt("rarityScore", 70).coerceIn(10, 100)
+                val hp = json.optCleanInt("horsepower", 300).coerceAtLeast(60)
+                val zeroToSixty = json.optCleanDouble("zeroToSixtyMph", 5.2).coerceIn(1.5, 18.0)
+                val speed = json.optCleanInt("topSpeedMph", 155).coerceAtLeast(75)
+                val price = json.optCleanLong("estimatedPriceUsd", 55000L).coerceAtLeast(5000L)
+                val engineType = json.optCleanString("engineType", "Performance Powertrain")
+                val drivetrain = json.optCleanString("drivetrain", "RWD / AWD")
+                val trivia = json.optCleanString("trivia", "Authentic real-world $make $model spotted with CarSpotter.")
+
+                val spot = CarSpot(
+                    id = UUID.randomUUID().toString(),
+                    make = make,
+                    model = model,
+                    year = year,
+                    trim = trim,
+                    rarityTier = tier,
+                    rarityScore = score,
+                    pointsAwarded = tier.basePoints + (score * 4),
+                    horsepower = hp,
+                    zeroToSixtyMph = zeroToSixty,
+                    topSpeedMph = speed,
+                    estimatedPriceUsd = price,
+                    engineType = engineType,
+                    drivetrain = drivetrain,
+                    description = "An authentic spotted $year $make $model ($trim) captured in the wild.",
+                    trivia = trivia,
+                    photoUri = photoUri,
+                    locationName = "Local Sighting",
+                    latitude = 34.0522,
+                    longitude = -118.2437,
+                    timestamp = System.currentTimeMillis(),
+                    isAuthentic = true,
+                    antiCheatConfidence = 0.99f,
+                    antiCheatDetails = details.ifBlank { "Verified authentic physical $make $model sighting by Gemini AI." },
+                    isFirstDiscovery = true
+                )
+
+                return RecognitionResult(
+                    carSpot = spot,
+                    antiCheatResult = AntiCheatResult(
+                        isAuthentic = true,
+                        confidence = 0.99f,
+                        verdict = verdict.ifBlank { "VERIFIED SIGHTING: $make $model" },
+                        details = "Gemini AI confirmed authentic physical $make $model ($hp HP, $speed MPH).",
+                        detectionFlags = listOf("Gemini AI Authenticity Pass", "Physical Reality Match")
+                    ),
+                    isSuccess = true,
+                    status = RecognitionStatus.SUCCESS
+                )
+            }
+        } catch (e: TimeoutCancellationException) {
+            Log.e(TAG, "Gemini vision timed out after ${AI_TIMEOUT_MS}ms", e)
+            return RecognitionResult(
+                carSpot = null,
+                antiCheatResult = AntiCheatResult(
+                    isAuthentic = false,
+                    confidence = 0.0f,
+                    verdict = "AI REQUEST TIMED OUT",
+                    details = "The AI service took over 60 seconds to respond. Check your Wi-Fi or mobile signal and tap Retry.",
+                    detectionFlags = listOf("60s Cloud Timeout", "Slow / Interrupted Connection")
+                ),
+                isSuccess = false,
+                status = RecognitionStatus.NETWORK_OR_TIMEOUT,
+                errorMessage = "AI recognition timed out after 60s. Check your connection and tap Retry."
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Gemini vision call failed: ${e::class.simpleName} - ${e.message}", e)
+            val isNetworkIssue = isLikelyNetworkException(e)
+            val status = if (isNetworkIssue) RecognitionStatus.NETWORK_OR_TIMEOUT else RecognitionStatus.AI_SERVICE_ERROR
+            val rawMessage = e.localizedMessage ?: e::class.simpleName ?: "Unknown error"
+            return RecognitionResult(
+                carSpot = null,
+                antiCheatResult = AntiCheatResult(
+                    isAuthentic = false,
+                    confidence = 0.0f,
+                    verdict = if (isNetworkIssue) "NETWORK CONNECTION ISSUE" else "AI SERVICE DIAGNOSTIC",
+                    details = if (isNetworkIssue) {
+                        "Could not reach Firebase AI ($rawMessage). Verify internet connectivity and tap Retry."
+                    } else {
+                        "Firebase AI could not complete identification ($rawMessage). Tap Retry or snap another photo."
+                    },
+                    detectionFlags = listOf(
+                        e::class.simpleName ?: "Exception",
+                        if (isNetworkIssue) "Network Unreachable" else "Service / Attestation Error"
+                    )
+                ),
+                isSuccess = false,
+                status = status,
+                errorMessage = rawMessage
+            )
+        }
+
+        return RecognitionResult(
+            carSpot = null,
+            antiCheatResult = AntiCheatResult(
+                isAuthentic = false,
+                confidence = 0.0f,
+                verdict = "EMPTY AI RESPONSE",
+                details = "Gemini AI returned an empty response. Tap Retry to re-scan this photo.",
+                detectionFlags = listOf("Empty Model Output")
+            ),
+            isSuccess = false,
+            status = RecognitionStatus.AI_SERVICE_ERROR,
+            errorMessage = "No vehicle data returned. Tap Retry or try snapping another photo."
+        )
+    }
+
+    private fun hasInternetCapability(): Boolean {
+        return try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                ?: return true
+            val network = cm.activeNetwork ?: return false
+            val caps = cm.getNetworkCapabilities(network) ?: return false
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        } catch (e: Exception) {
+            Log.w(TAG, "Connectivity check skipped: ${e.message}")
+            true
+        }
+    }
+
+    private fun isLikelyNetworkException(e: Throwable): Boolean {
+        var current: Throwable? = e
+        while (current != null) {
+            if (current is UnknownHostException ||
+                current is SocketTimeoutException ||
+                current is ConnectException ||
+                current is IOException
+            ) {
+                return true
+            }
+            val msg = current.message?.lowercase().orEmpty()
+            if (msg.contains("unable to resolve host") ||
+                msg.contains("network") ||
+                msg.contains("timeout") ||
+                msg.contains("timed out") ||
+                msg.contains("connection reset") ||
+                msg.contains("failed to connect")
+            ) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
+    }
+
+    /**
+     * Local on-device filter for completely black/obscured lenses or flat blank walls.
+     */
+    private fun isUniformOrNonVehicleSurface(bitmap: Bitmap): Pair<Boolean, String> {
+        val sampleW = 64
+        val sampleH = 64
+        val thumb = Bitmap.createScaledBitmap(bitmap, sampleW, sampleH, true)
+
+        var totalLuminance = 0.0
+        val pixels = IntArray(sampleW * sampleH)
+        thumb.getPixels(pixels, 0, sampleW, 0, 0, sampleW, sampleH)
+
+        val luminances = DoubleArray(pixels.size)
+        for (i in pixels.indices) {
+            val color = pixels[i]
+            val r = (color shr 16) and 0xFF
+            val g = (color shr 8) and 0xFF
+            val b = color and 0xFF
+            val lum = 0.299 * r + 0.587 * g + 0.114 * b
+            luminances[i] = lum
+            totalLuminance += lum
+        }
+
+        val mean = totalLuminance / pixels.size
+        var varianceSum = 0.0
+        for (lum in luminances) {
+            val diff = lum - mean
+            varianceSum += diff * diff
+        }
+        val stdDev = Math.sqrt(varianceSum / pixels.size)
+
+        var gradientSum = 0.0
+        var count = 0
+        for (y in 0 until sampleH - 1) {
+            for (x in 0 until sampleW - 1) {
+                val idx = y * sampleW + x
+                val diffX = Math.abs(luminances[idx] - luminances[idx + 1])
+                val diffY = Math.abs(luminances[idx] - luminances[idx + sampleW])
+                gradientSum += (diffX + diffY)
+                count += 2
+            }
+        }
+        val avgGradient = if (count > 0) gradientSum / count else 0.0
+
+        Log.d(TAG, "Computer vision surface check: mean=$mean, stdDev=$stdDev, avgGradient=$avgGradient")
+
+        if (stdDev < 10.0 || avgGradient < 3.5) {
+            val surfaceName = when {
+                mean < 30.0 -> "Dark/black surface or covered camera lens"
+                mean > 220.0 -> "Blank white wall or overexposed frame"
+                else -> "Plain flat wall or uniform surface"
+            }
+            return Pair(true, surfaceName)
+        }
+
+        return Pair(false, "")
+    }
+
+    private fun decodeBitmapFromUri(photoUri: String?): Bitmap? {
+        if (photoUri.isNullOrBlank()) return null
+        return try {
+            val uri = Uri.parse(photoUri)
+            val inputStream = when (uri.scheme) {
+                "file" -> File(uri.path ?: "").inputStream()
+                "content" -> context.contentResolver.openInputStream(uri)
+                else -> File(photoUri).inputStream()
+            }
+
+            val originalBitmap = inputStream?.use { BitmapFactory.decodeStream(it) } ?: return null
+
+            val filePath = if (uri.scheme == "file") uri.path else photoUri
+            if (!filePath.isNullOrBlank() && File(filePath).exists()) {
+                try {
+                    val exif = ExifInterface(filePath)
+                    val orientation = exif.getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL
+                    )
+                    val matrix = Matrix()
+                    when (orientation) {
+                        ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                        ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                        ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                    }
+                    if (orientation != ExifInterface.ORIENTATION_NORMAL && orientation != ExifInterface.ORIENTATION_UNDEFINED) {
+                        Bitmap.createBitmap(originalBitmap, 0, 0, originalBitmap.width, originalBitmap.height, matrix, true)
+                    } else {
+                        originalBitmap
+                    }
+                } catch (_: Exception) {
+                    originalBitmap
+                }
+            } else {
+                originalBitmap
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error decoding bitmap from $photoUri", e)
+            null
+        }
+    }
+
+    private sealed interface PreparedFrame {
+        data object DecodeFailed : PreparedFrame
+        data class UniformSurface(val surfaceType: String) : PreparedFrame
+        data class Ready(val jpegBytes: ByteArray) : PreparedFrame
+    }
+}
+
+private fun JSONObject.optCleanString(key: String, fallback: String): String {
+    if (!has(key) || isNull(key)) return fallback
+    val value = optString(key, fallback).trim()
+    return if (value.isBlank() || value.equals("null", ignoreCase = true)) fallback else value
+}
+
+private fun JSONObject.optCleanInt(key: String, fallback: Int): Int {
+    if (!has(key) || isNull(key)) return fallback
+    return try {
+        optInt(key, fallback)
+    } catch (_: Exception) {
+        fallback
+    }
+}
+
+private fun JSONObject.optCleanLong(key: String, fallback: Long): Long {
+    if (!has(key) || isNull(key)) return fallback
+    return try {
+        optLong(key, fallback)
+    } catch (_: Exception) {
+        fallback
+    }
+}
+
+private fun JSONObject.optCleanDouble(key: String, fallback: Double): Double {
+    if (!has(key) || isNull(key)) return fallback
+    return try {
+        optDouble(key, fallback)
+    } catch (_: Exception) {
+        fallback
+    }
 }

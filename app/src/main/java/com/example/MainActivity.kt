@@ -69,7 +69,6 @@ import com.example.ui.TabDestination
 import com.example.ui.components.CarDetailSheet
 import com.example.ui.components.TrophyRevealDialog
 import com.example.ui.screens.CameraCaptureScreen
-import com.example.ui.screens.CameraSpotScreen
 import com.example.ui.screens.CollectionScreen
 import com.example.ui.screens.CommunityScreen
 import com.example.ui.screens.MapSpotScreen
@@ -120,6 +119,7 @@ fun CarSpotterApp(viewModel: CarSpotterViewModel) {
     val inspectedCar by viewModel.inspectedCar.collectAsState()
 
     val authUser by viewModel.authUser.collectAsState()
+    val latestCapturedBitmap by viewModel.latestCapturedBitmap.collectAsState()
 
     // Handle back button: return to SPOT tab if on another screen
     BackHandler(enabled = currentTab != TabDestination.SPOT) {
@@ -162,10 +162,12 @@ fun CarSpotterApp(viewModel: CarSpotterViewModel) {
         }
     }
 
-    // Celebratory Trophy Reveal Popup after snapping a car
+    // Celebratory Trophy Reveal Popup after snapping a car: Displays processed Bitmap directly!
     if (showTrophyDialog && latestResult != null) {
         TrophyRevealDialog(
             result = latestResult!!,
+            capturedBitmap = latestCapturedBitmap,
+            onRetry = { viewModel.retryLastAnalysis() },
             onDismiss = { viewModel.dismissTrophyDialog() }
         )
     }

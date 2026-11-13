@@ -27,10 +27,12 @@ import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -57,6 +59,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.R
 import com.example.ai.RecognitionResult
+import com.example.ai.RecognitionStatus
 import com.example.model.CarSpot
 import com.example.ui.theme.ApexCrimson
 import com.example.ui.theme.CarbonBorder
@@ -72,15 +75,25 @@ import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.TurboAmber
 import com.example.util.SocialShareUtil
 import java.text.NumberFormat
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import java.util.Locale
 
 @Composable
 fun TrophyRevealDialog(
     result: RecognitionResult,
+    capturedBitmap: Bitmap? = null,
+    onRetry: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
     val car = result.carSpot
+    val accentBorderColor = when {
+        result.isSuccess && car != null -> Color(car.rarityTier.colorHex)
+        result.status == RecognitionStatus.NETWORK_OR_TIMEOUT ||
+            result.status == RecognitionStatus.AI_SERVICE_ERROR -> TurboAmber
+        else -> ApexCrimson
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -94,11 +107,7 @@ fun TrophyRevealDialog(
                 .border(
                     width = 1.5.dp,
                     brush = Brush.verticalGradient(
-                        colors = if (result.isSuccess && car != null) {
-                            listOf(Color(car.rarityTier.colorHex), CarbonBorder)
-                        } else {
-                            listOf(ApexCrimson, CarbonBorder)
-                        }
+                        colors = listOf(accentBorderColor, CarbonBorder)
                     ),
                     shape = RoundedCornerShape(24.dp)
                 )
@@ -114,15 +123,19 @@ fun TrophyRevealDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (!result.isSuccess || car == null) {
-                    CheatFlaggedCard(
+                    DiagnosticOrRejectionCard(
+                        status = result.status,
                         verdict = result.antiCheatResult.verdict,
                         details = result.antiCheatResult.details,
                         flags = result.antiCheatResult.detectionFlags,
+                        capturedBitmap = capturedBitmap,
+                        onRetry = onRetry,
                         onDismiss = onDismiss
                     )
                 } else {
                     TrophySuccessContent(
                         car = car,
+                        capturedBitmap = capturedBitmap,
                         context = context,
                         onDismiss = onDismiss
                     )
@@ -135,6 +148,7 @@ fun TrophyRevealDialog(
 @Composable
 private fun TrophySuccessContent(
     car: CarSpot,
+    capturedBitmap: Bitmap? = null,
     context: Context,
     onDismiss: () -> Unit
 ) {
@@ -182,54 +196,26 @@ private fun TrophySuccessContent(
 
     Spacer(modifier = Modifier.height(14.dp))
 
-    // Car Photo with Rarity Ribbon
+    // Car Photo with Rarity Ribbon: Displays the processed, correctly-scaled Bitmap immediately!
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp)
+            .height(200.dp)
             .clip(RoundedCornerShape(16.dp))
             .border(1.dp, CarbonBorder, RoundedCornerShape(16.dp))
     ) {
-        when {
-            car.photoUri == "res:car_porsche" -> {
-                Image(
-                    painter = painterResource(id = R.drawable.car_porsche),
-                    contentDescription = car.model,
-                    modifier = Modifier.matchParentSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-            car.photoUri == "res:car_ferrari" -> {
-                Image(
-                    painter = painterResource(id = R.drawable.car_ferrari),
-                    contentDescription = car.model,
-                    modifier = Modifier.matchParentSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-            car.photoUri != null -> {
-                AsyncImage(
-                    model = car.photoUri,
-                    contentDescription = car.model,
-                    modifier = Modifier.matchParentSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-            else -> {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(CarbonCardElevated),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsCar,
-                        contentDescription = null,
-                        tint = TextMuted,
-                        modifier = Modifier.size(56.dp)
-                    )
-                }
-            }
+        if (capturedBitmap != null) {
+            Image(
+                bitmap = capturedBitmap.asImageBitmap(),
+                contentDescription = "${car.make} ${car.model}",
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            CarSpotImage(
+                car = car,
+                modifier = Modifier.matchParentSize()
+            )
         }
 
         // Rarity Tag Floating Pill
@@ -593,22 +579,43 @@ fun SocialPlatformButton(
 }
 
 @Composable
-private fun CheatFlaggedCard(
+private fun DiagnosticOrRejectionCard(
+    status: RecognitionStatus,
     verdict: String,
     details: String,
     flags: List<String>,
+    capturedBitmap: Bitmap? = null,
+    onRetry: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
+    val isConnectivityOrServiceIssue =
+        status == RecognitionStatus.NETWORK_OR_TIMEOUT || status == RecognitionStatus.AI_SERVICE_ERROR
+    val accentColor = if (isConnectivityOrServiceIssue) TurboAmber else ApexCrimson
+
+    val headerLabel = when (status) {
+        RecognitionStatus.REJECTED_CHEAT -> "ANTI-CHEAT REJECTION"
+        RecognitionStatus.NO_VEHICLE -> "NO VEHICLE DETECTED"
+        RecognitionStatus.NETWORK_OR_TIMEOUT -> "CONNECTION / TIMEOUT"
+        RecognitionStatus.AI_SERVICE_ERROR -> "AI SERVICE DIAGNOSTIC"
+        RecognitionStatus.SUCCESS -> ""
+    }
+
+    val headerIcon = when (status) {
+        RecognitionStatus.NETWORK_OR_TIMEOUT -> Icons.Default.WifiOff
+        RecognitionStatus.NO_VEHICLE -> Icons.Default.DirectionsCar
+        else -> Icons.Default.Error
+    }
+
     Icon(
-        imageVector = Icons.Default.Error,
+        imageVector = headerIcon,
         contentDescription = null,
-        tint = ApexCrimson,
+        tint = accentColor,
         modifier = Modifier.size(54.dp)
     )
     Spacer(modifier = Modifier.height(10.dp))
     Text(
-        text = "ANTI-CHEAT REJECTION",
-        color = ApexCrimson,
+        text = headerLabel,
+        color = accentColor,
         fontWeight = FontWeight.ExtraBold,
         fontSize = 14.sp,
         letterSpacing = 1.sp
@@ -630,6 +637,23 @@ private fun CheatFlaggedCard(
         lineHeight = 17.sp
     )
 
+    if (capturedBitmap != null) {
+        Spacer(modifier = Modifier.height(12.dp))
+        Box(
+            modifier = Modifier
+                .size(130.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .border(1.5.dp, accentColor.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+        ) {
+            Image(
+                bitmap = capturedBitmap.asImageBitmap(),
+                contentDescription = "Captured Photo",
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+
     Spacer(modifier = Modifier.height(14.dp))
 
     Column(
@@ -641,7 +665,7 @@ private fun CheatFlaggedCard(
             .padding(12.dp)
     ) {
         Text(
-            text = "DETECTED SIGNALS:",
+            text = if (isConnectivityOrServiceIssue) "DIAGNOSTIC DETAILS:" else "DETECTED SIGNALS:",
             color = TextMuted,
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold
@@ -650,7 +674,7 @@ private fun CheatFlaggedCard(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "• $flag",
-                color = ApexCrimson,
+                color = accentColor,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -659,15 +683,42 @@ private fun CheatFlaggedCard(
 
     Spacer(modifier = Modifier.height(20.dp))
 
-    Button(
+    if (isConnectivityOrServiceIssue && onRetry != null) {
+        Button(
+            onClick = onRetry,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .testTag("retry_analysis_button"),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = TurboAmber,
+                contentColor = Color.Black
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Retry Identification", fontWeight = FontWeight.ExtraBold)
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+    }
+
+    OutlinedButton(
         onClick = onDismiss,
         modifier = Modifier
             .fillMaxWidth()
+            .height(48.dp)
             .testTag("dismiss_cheat_button"),
-        colors = ButtonDefaults.buttonColors(containerColor = CarbonCardElevated),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Text("Try Authentic Sighting", color = TextPrimary)
+        Text(
+            text = when (status) {
+                RecognitionStatus.REJECTED_CHEAT -> "Try Authentic Sighting"
+                RecognitionStatus.NO_VEHICLE -> "Point Camera at a Car"
+                else -> "Retake Photo"
+            },
+            color = TextPrimary
+        )
     }
 }
 

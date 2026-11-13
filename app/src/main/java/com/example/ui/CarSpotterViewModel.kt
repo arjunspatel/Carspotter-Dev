@@ -212,11 +212,13 @@ class CarSpotterViewModel(application: Application) : AndroidViewModel(applicati
     private val _latestRecognitionResult = MutableStateFlow<RecognitionResult?>(null)
     val latestRecognitionResult: StateFlow<RecognitionResult?> = _latestRecognitionResult.asStateFlow()
 
+    private val _latestCapturedBitmap = MutableStateFlow<android.graphics.Bitmap?>(null)
+    val latestCapturedBitmap: StateFlow<android.graphics.Bitmap?> = _latestCapturedBitmap.asStateFlow()
+
+    private var latestCapturedPhotoUri: String? = null
+
     private val _showTrophyRevealDialog = MutableStateFlow(false)
     val showTrophyRevealDialog: StateFlow<Boolean> = _showTrophyRevealDialog.asStateFlow()
-
-    private val _antiCheatMode = MutableStateFlow("AUTHENTIC")
-    val antiCheatMode: StateFlow<String> = _antiCheatMode.asStateFlow()
 
     // Detail dialog inspection
     private val _inspectedCar = MutableStateFlow<CarSpot?>(null)
@@ -311,10 +313,6 @@ class CarSpotterViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun setAntiCheatMode(mode: String) {
-        _antiCheatMode.value = mode
-    }
-
     fun inspectCar(car: CarSpot?) {
         _inspectedCar.value = car
     }
@@ -322,6 +320,8 @@ class CarSpotterViewModel(application: Application) : AndroidViewModel(applicati
     fun dismissTrophyDialog() {
         _showTrophyRevealDialog.value = false
         _latestRecognitionResult.value = null
+        _latestCapturedBitmap.value = null
+        latestCapturedPhotoUri = null
     }
 
     fun deleteCar(car: CarSpot) {
@@ -341,31 +341,75 @@ class CarSpotterViewModel(application: Application) : AndroidViewModel(applicati
      * 3. Vehicle match & stats calculation
      * 4. Pop-up trophy reveal
      */
-    fun snapCar(photoUri: String? = null) {
+    fun snapCar(photoUri: String? = null, bitmap: android.graphics.Bitmap? = null, captureError: String? = null) {
         if (_isAnalyzing.value) return
+        _latestCapturedBitmap.value = bitmap
+        latestCapturedPhotoUri = photoUri
         viewModelScope.launch {
-            _isAnalyzing.value = true
-            _scanningStepText.value = "Calibrating optical focal grid..."
-            delay(400)
-            _scanningStepText.value = "Scanning for screen moiré & bezel anti-cheat..."
-            delay(500)
-            _scanningStepText.value = "Querying automotive telemetry database..."
-            delay(500)
-
-            val result = recognitionEngine.analyzeVehicleImage(
-                photoUri = photoUri,
-                simulatedCheatMode = _antiCheatMode.value
-            )
-
-            _latestRecognitionResult.value = result
-            _isAnalyzing.value = false
-            _showTrophyRevealDialog.value = true
-
-            // Automatically persist to user's collection if authentic
-            if (result.isSuccess && result.carSpot != null) {
-                repository.addSpot(result.carSpot)
-                firestoreService.saveCarSpotToFirestore(result.carSpot)
+            if (captureError != null && photoUri == null && bitmap == null) {
+                _latestRecognitionResult.value = RecognitionResult(
+                    carSpot = null,
+                    antiCheatResult = com.example.model.AntiCheatResult(
+                        isAuthentic = false,
+                        confidence = 1.0f,
+                        verdict = "CAMERA CAPTURE ERROR",
+                        details = captureError,
+                        detectionFlags = listOf("Hardware Shutter Glitch")
+                    ),
+                    isSuccess = false,
+                    status = com.example.ai.RecognitionStatus.AI_SERVICE_ERROR,
+                    errorMessage = captureError
+                )
+                _showTrophyRevealDialog.value = true
+                return@launch
             }
+
+            runVehicleAnalysis(photoUri = photoUri, bitmap = bitmap)
+        }
+    }
+
+    fun retryLastAnalysis() {
+        if (_isAnalyzing.value) return
+        val uri = latestCapturedPhotoUri
+        val bmp = _latestCapturedBitmap.value
+        if (uri == null && bmp == null) {
+            dismissTrophyDialog()
+            return
+        }
+        _showTrophyRevealDialog.value = false
+        viewModelScope.launch {
+            runVehicleAnalysis(photoUri = uri, bitmap = bmp)
+        }
+    }
+
+    private suspend fun runVehicleAnalysis(photoUri: String?, bitmap: android.graphics.Bitmap?) {
+        _isAnalyzing.value = true
+        _scanningStepText.value = "Verifying authenticity & scanning vehicle with Gemini AI..."
+
+        val statusUpdater = viewModelScope.launch {
+            delay(8_000L)
+            _scanningStepText.value = "Deep-scanning make, model & trim specs..."
+            delay(14_000L)
+            _scanningStepText.value = "Still working — finalizing cloud AI verification..."
+        }
+
+        val result = try {
+            recognitionEngine.analyzeVehicleImage(
+                photoUri = photoUri,
+                capturedBitmap = bitmap
+            )
+        } finally {
+            statusUpdater.cancel()
+        }
+
+        _latestRecognitionResult.value = result
+        _isAnalyzing.value = false
+        _showTrophyRevealDialog.value = true
+
+        // Automatically persist to user's collection if authentic
+        if (result.isSuccess && result.carSpot != null) {
+            repository.addSpot(result.carSpot)
+            firestoreService.saveCarSpotToFirestore(result.carSpot)
         }
     }
 }
