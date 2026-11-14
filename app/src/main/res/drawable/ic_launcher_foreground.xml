@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/carspotter_icon_1794349578211"
+        android:drawable="@drawable/carspotter_cartoon_car_logo_1794609260359"
         android:gravity="center" />
 </layer-list>

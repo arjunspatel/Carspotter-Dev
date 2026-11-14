@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,7 +23,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.example.ui.components.CarSpotImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -32,11 +32,11 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -51,32 +51,34 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import com.example.R
 import com.example.model.CarSpot
 import com.example.model.RarityTier
 import com.example.ui.CarSpotterViewModel
 import com.example.ui.SortOrder
-import com.example.ui.theme.CarbonBorder
-import com.example.ui.theme.CarbonCard
-import com.example.ui.theme.CarbonCardElevated
-import com.example.ui.theme.CarbonDark
-import com.example.ui.theme.GoldenTrophy
-import com.example.ui.theme.NitroCyan
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.TurboAmber
+import com.example.ui.components.CarSpotImage
+import com.example.ui.theme.CobaltAccent
+import com.example.ui.theme.HairlineBorder
+import com.example.ui.theme.InkMuted
+import com.example.ui.theme.InkPrimary
+import com.example.ui.theme.InkSecondary
+import com.example.ui.theme.MistSurface
+import com.example.ui.theme.OutfitDisplayFont
+import com.example.ui.theme.PorcelainSurface
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.RacingRed
+import com.example.ui.theme.WarmGold
+import com.example.ui.theme.WarmGoldSoft
 import com.example.util.SocialShareUtil
 import java.text.NumberFormat
 import java.util.Locale
@@ -97,7 +99,6 @@ fun CollectionScreen(
 
     val brands = listOf("All", "Porsche", "Ferrari", "McLaren", "Lamborghini", "BMW", "Chevrolet", "Nissan", "Ford", "Bugatti")
 
-    // Stats calculations
     val totalSpots = allSpots.size
     val totalPoints = allSpots.sumOf { it.pointsAwarded }
     val totalValue = allSpots.sumOf { it.estimatedPriceUsd }
@@ -105,309 +106,352 @@ fun CollectionScreen(
         maximumFractionDigits = 0
     }.format(totalValue)
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(CarbonDark)
-            .testTag("collection_screen")
+            .background(PureWhite)
+            .testTag("collection_screen"),
+        contentPadding = PaddingValues(bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Top Garage Header Banner
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(CarbonCardElevated, CarbonCard)
+        // Website-Style Graphic Editorial Hero Section
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(PorcelainSurface)
+                    .border(1.dp, HairlineBorder, RoundedCornerShape(22.dp))
+            ) {
+                // Subtle graphic architectural grid lines
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    val step = 36.dp.toPx()
+                    var x = step
+                    while (x < size.width) {
+                        drawLine(
+                            color = HairlineBorder.copy(alpha = 0.55f),
+                            start = Offset(x, 0f),
+                            end = Offset(x, size.height),
+                            strokeWidth = 1f
+                        )
+                        x += step
+                    }
+                    drawCircle(
+                        color = CobaltAccent.copy(alpha = 0.06f),
+                        radius = size.width * 0.34f,
+                        center = Offset(size.width * 0.92f, size.height * 0.12f)
                     )
-                )
-                .border(1.dp, CarbonBorder, RoundedCornerShape(20.dp))
-                .padding(16.dp)
-        ) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "TROPHY GARAGE",
-                            color = TurboAmber,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 1.sp
-                        )
-                        Text(
-                            text = "$totalSpots Vehicles Spotted",
-                            color = TextPrimary,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                }
+
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "CURATED GARAGE",
+                                color = CobaltAccent,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.4.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Your Collection.",
+                                fontFamily = OutfitDisplayFont,
+                                color = InkPrimary,
+                                fontSize = 26.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.5).sp
+                            )
+                            Text(
+                                text = "$totalSpots authenticated real-world sightings",
+                                color = InkSecondary,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        // Clean Portfolio Value Pill
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(PureWhite)
+                                .border(1.dp, HairlineBorder, RoundedCornerShape(14.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = "EST. VALUE",
+                                    color = InkMuted,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.8.sp
+                                )
+                                Text(
+                                    text = formattedTotalValue,
+                                    fontFamily = OutfitDisplayFont,
+                                    color = InkPrimary,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
 
-                    // Garage Value Pill
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(thickness = 1.dp, color = HairlineBorder)
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Editorial 3-column metrics strip
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        GarageStatItem(
+                            title = "TOTAL POINTS",
+                            value = "$totalPoints PTS",
+                            accentColor = WarmGold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        GarageStatItem(
+                            title = "RAREST MODEL",
+                            value = allSpots.maxByOrNull { it.rarityScore }?.model ?: "None",
+                            accentColor = CobaltAccent,
+                            modifier = Modifier.weight(1f)
+                        )
+                        GarageStatItem(
+                            title = "PEAK SPEED",
+                            value = "${allSpots.maxOfOrNull { it.topSpeedMph } ?: 0} MPH",
+                            accentColor = RacingRed,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Clean Website Search Bar & Sort Button
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.setSearchQuery(it) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp)
+                        .testTag("collection_search_bar"),
+                    placeholder = { Text("Search make, model, city...", color = InkMuted, fontSize = 13.sp) },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = InkMuted)
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotBlank()) {
+                            IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear", tint = InkMuted)
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = InkPrimary,
+                        unfocusedBorderColor = HairlineBorder,
+                        focusedContainerColor = PorcelainSurface,
+                        unfocusedContainerColor = PorcelainSurface,
+                        focusedTextColor = InkPrimary,
+                        unfocusedTextColor = InkPrimary
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Box {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(GoldenTrophy.copy(alpha = 0.15f))
-                            .border(1.dp, GoldenTrophy.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(PureWhite)
+                            .border(1.dp, HairlineBorder, RoundedCornerShape(14.dp))
+                            .clickable { showSortMenu = true }
+                            .testTag("sort_filter_button"),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "EST. VALUE",
-                                color = GoldenTrophy,
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = formattedTotalValue,
-                                color = GoldenTrophy,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.ExtraBold
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = "Sort",
+                            tint = InkPrimary
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showSortMenu,
+                        onDismissRequest = { showSortMenu = false },
+                        modifier = Modifier.background(PureWhite)
+                    ) {
+                        SortOrder.values().forEach { order ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = order.label,
+                                        color = if (selectedSort == order) CobaltAccent else InkPrimary,
+                                        fontWeight = if (selectedSort == order) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize = 13.sp
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.setSortOrder(order)
+                                    showSortMenu = false
+                                }
                             )
                         }
                     }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Stats row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    GarageStatItem(
-                        title = "TOTAL POINTS",
-                        value = "$totalPoints PTS",
-                        color = TurboAmber
-                    )
-                    GarageStatItem(
-                        title = "RAREST SPOT",
-                        value = allSpots.maxByOrNull { it.rarityScore }?.model ?: "None",
-                        color = NitroCyan
-                    )
-                    GarageStatItem(
-                        title = "MAX SPEED",
-                        value = "${allSpots.maxOfOrNull { it.topSpeedMph } ?: 0} MPH",
-                        color = Color(0xFFFF1744)
-                    )
                 }
             }
         }
 
-        // Search Bar & Sort Button
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { viewModel.setSearchQuery(it) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp)
-                    .testTag("collection_search_bar"),
-                placeholder = { Text("Search make, model, city...", color = TextMuted, fontSize = 12.sp) },
-                leadingIcon = {
-                    Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = TextMuted)
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotBlank()) {
-                        IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                            Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear", tint = TextMuted)
+        // Brand Filter Pills
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    brands.forEach { brand ->
+                        val isSelected = selectedBrand == brand
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(if (isSelected) InkPrimary else PureWhite)
+                                .border(
+                                    1.dp,
+                                    if (isSelected) InkPrimary else HairlineBorder,
+                                    RoundedCornerShape(999.dp)
+                                )
+                                .clickable { viewModel.setBrandFilter(brand) }
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .testTag("filter_brand_$brand")
+                        ) {
+                            Text(
+                                text = brand,
+                                color = if (isSelected) PureWhite else InkSecondary,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
                         }
                     }
-                },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = TurboAmber,
-                    unfocusedBorderColor = CarbonBorder,
-                    focusedContainerColor = CarbonCard,
-                    unfocusedContainerColor = CarbonCard,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary
-                ),
-                shape = RoundedCornerShape(14.dp)
-            )
+                }
 
-            Spacer(modifier = Modifier.width(8.dp))
+                // Rarity Tier Filter Pills
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val isAll = selectedTier == null
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(if (isAll) CobaltAccent else PorcelainSurface)
+                            .border(1.dp, if (isAll) CobaltAccent else HairlineBorder, RoundedCornerShape(999.dp))
+                            .clickable { viewModel.setTierFilter(null) }
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                            .testTag("filter_tier_all")
+                    ) {
+                        Text(
+                            text = "All Ranks",
+                            color = if (isAll) PureWhite else InkSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
 
-            // Sort dropdown trigger
-            Box {
+                    RarityTier.values().forEach { tier ->
+                        val isSelected = selectedTier == tier
+                        val tierColor = Color(tier.colorHex)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(if (isSelected) tierColor else PureWhite)
+                                .border(1.dp, if (isSelected) tierColor else HairlineBorder, RoundedCornerShape(999.dp))
+                                .clickable { viewModel.setTierFilter(tier) }
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                                .testTag("filter_tier_${tier.name}")
+                        ) {
+                            Text(
+                                text = tier.label,
+                                color = if (isSelected) PureWhite else tierColor,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Vehicles List or Editorial Empty State
+        if (filteredSpots.isEmpty()) {
+            item {
                 Box(
                     modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(CarbonCard)
-                        .border(1.dp, CarbonBorder, RoundedCornerShape(14.dp))
-                        .clickable { showSortMenu = true }
-                        .testTag("sort_filter_button"),
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 48.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(PorcelainSurface)
+                        .border(1.dp, HairlineBorder, RoundedCornerShape(20.dp))
+                        .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.FilterList,
-                        contentDescription = "Sort",
-                        tint = NitroCyan
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showSortMenu,
-                    onDismissRequest = { showSortMenu = false },
-                    modifier = Modifier.background(CarbonCard)
-                ) {
-                    SortOrder.values().forEach { order ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = order.label,
-                                    color = if (selectedSort == order) TurboAmber else TextPrimary,
-                                    fontSize = 12.sp
-                                )
-                            },
-                            onClick = {
-                                viewModel.setSortOrder(order)
-                                showSortMenu = false
-                            }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(PureWhite)
+                                .border(1.dp, HairlineBorder, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DirectionsCar,
+                                contentDescription = null,
+                                tint = InkMuted,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "No vehicles found",
+                            fontFamily = OutfitDisplayFont,
+                            color = InkPrimary,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Open the Spot camera tab to photograph a real car and add it to your white gallery.",
+                            color = InkSecondary,
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center
                         )
                     }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Horizontal Brand Filter Chips
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            brands.forEach { brand ->
-                val isSelected = selectedBrand == brand
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(if (isSelected) TurboAmber else CarbonCard)
-                        .border(
-                            1.dp,
-                            if (isSelected) TurboAmber else CarbonBorder,
-                            RoundedCornerShape(20.dp)
-                        )
-                        .clickable { viewModel.setBrandFilter(brand) }
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                        .testTag("filter_brand_$brand")
-                ) {
-                    Text(
-                        text = brand,
-                        color = if (isSelected) Color.Black else TextSecondary,
-                        fontSize = 11.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Horizontal Rarity Tier Filter Chips
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // All Tiers chip
-            val isAll = selectedTier == null
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (isAll) NitroCyan else CarbonCard)
-                    .border(1.dp, if (isAll) NitroCyan else CarbonBorder, RoundedCornerShape(16.dp))
-                    .clickable { viewModel.setTierFilter(null) }
-                    .padding(horizontal = 12.dp, vertical = 5.dp)
-                    .testTag("filter_tier_all")
-            ) {
-                Text(
-                    text = "All Ranks",
-                    color = if (isAll) Color.Black else TextSecondary,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            RarityTier.values().forEach { tier ->
-                val isSelected = selectedTier == tier
-                val tierColor = Color(tier.colorHex)
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (isSelected) tierColor else CarbonCard)
-                        .border(1.dp, if (isSelected) tierColor else CarbonBorder, RoundedCornerShape(16.dp))
-                        .clickable { viewModel.setTierFilter(tier) }
-                        .padding(horizontal = 12.dp, vertical = 5.dp)
-                        .testTag("filter_tier_${tier.name}")
-                ) {
-                    Text(
-                        text = tier.label,
-                        color = if (isSelected) Color.Black else tierColor,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Cars List or Empty State
-        if (filteredSpots.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsCar,
-                        contentDescription = null,
-                        tint = TextMuted,
-                        modifier = Modifier.size(54.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "No vehicles found in garage",
-                        color = TextPrimary,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Snap new cars with the camera tab to build your trophy collection!",
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center
-                    )
                 }
             }
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(filteredSpots, key = { it.id }) { car ->
+            items(filteredSpots, key = { it.id }) { car ->
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                     CarCollectionCard(
                         car = car,
                         onClick = { viewModel.inspectCar(car) },
@@ -430,133 +474,145 @@ fun CarCollectionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .border(1.dp, CarbonBorder, RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
             .testTag("car_card_${car.id}"),
-        colors = CardDefaults.cardColors(containerColor = CarbonCard)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = PureWhite),
+        border = BorderStroke(1.dp, HairlineBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-            // Photo Banner with Floating Badges
+            // Crisp Full-Bleed Vehicle Photo Banner
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp)
+                    .height(185.dp)
+                    .background(PorcelainSurface)
             ) {
                 CarSpotImage(
                     car = car,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Gradient Vignette
+                // Subtle bottom readability fade only
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.Black.copy(alpha = 0.5f),
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.8f)
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.25f)
                                 )
                             )
                         )
                 )
 
-                // Rarity Tag Top Left
+                // Crisp White Rarity Tag Top Left
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(10.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.Black.copy(alpha = 0.75f))
-                        .border(1.dp, tierColor, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                        .padding(12.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(PureWhite.copy(alpha = 0.94f))
+                        .border(1.dp, HairlineBorder, RoundedCornerShape(999.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = car.rarityTier.label.uppercase(),
                         color = tierColor,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp
+                        fontSize = 10.sp,
+                        letterSpacing = 0.5.sp
                     )
                 }
 
-                // Points Badge Top Right
+                // Points Pill Top Right
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(10.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(tierColor.copy(alpha = 0.25f))
-                        .border(1.dp, tierColor, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                        .padding(12.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(InkPrimary.copy(alpha = 0.9f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = "+${car.pointsAwarded} PTS",
-                        color = tierColor,
-                        fontWeight = FontWeight.ExtraBold,
+                        color = PureWhite,
+                        fontWeight = FontWeight.Bold,
                         fontSize = 11.sp
                     )
                 }
 
-                // Quick Share Icon Button Floating Bottom Right
+                // Clean White Floating Share Button
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(10.dp)
-                        .size(34.dp)
+                        .padding(12.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.7f))
-                        .border(1.dp, NitroCyan, CircleShape)
+                        .background(PureWhite.copy(alpha = 0.95f))
+                        .border(1.dp, HairlineBorder, CircleShape)
                         .clickable(onClick = onShare),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = "Share",
-                        tint = NitroCyan,
+                        tint = InkPrimary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
-            // Info Content
+            // Editorial White Details Block
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(14.dp)
+                    .background(PureWhite)
+                    .padding(16.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Top
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "${car.year} ${car.make} ${car.model}",
-                            color = TextPrimary,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold
+                            fontFamily = OutfitDisplayFont,
+                            color = InkPrimary,
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.3).sp
                         )
                         Text(
                             text = car.trim,
-                            color = NitroCyan,
+                            color = InkSecondary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
 
-                    Text(
-                        text = "${car.rarityScore}/100",
-                        color = tierColor,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold
-                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(WarmGoldSoft)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "${car.rarityScore}/100",
+                            color = WarmGold,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Specs Pill Row
+                // Clean Specs Pills
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -564,34 +620,34 @@ fun CarCollectionCard(
                     MiniSpecPill(
                         icon = Icons.Default.ElectricBolt,
                         text = "${car.horsepower} HP",
-                        color = TurboAmber
+                        iconColor = WarmGold
                     )
                     MiniSpecPill(
                         icon = Icons.Default.Speed,
                         text = "${car.zeroToSixtyMph}s 0-60",
-                        color = NitroCyan
+                        iconColor = CobaltAccent
                     )
                     MiniSpecPill(
                         icon = Icons.Default.Speed,
                         text = "${car.topSpeedMph} MPH",
-                        color = Color(0xFFFF1744)
+                        iconColor = RacingRed
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Location stamp
+                // Location Stamp
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = TextMuted,
-                        modifier = Modifier.size(13.dp)
+                        tint = InkMuted,
+                        modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = car.locationName,
-                        color = TextSecondary,
+                        color = InkMuted,
                         fontSize = 11.sp
                     )
                 }
@@ -602,30 +658,30 @@ fun CarCollectionCard(
 
 @Composable
 fun MiniSpecPill(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     text: String,
-    color: Color
+    iconColor: Color
 ) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(CarbonCardElevated)
-            .border(1.dp, CarbonBorder, RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .background(PorcelainSurface)
+            .border(1.dp, HairlineBorder, RoundedCornerShape(8.dp))
+            .padding(horizontal = 9.dp, vertical = 5.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = color,
+                tint = iconColor,
                 modifier = Modifier.size(12.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = text,
-                color = TextPrimary,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
+                color = InkPrimary,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
@@ -635,22 +691,26 @@ fun MiniSpecPill(
 fun GarageStatItem(
     title: String,
     value: String,
-    color: Color
+    accentColor: Color,
+    modifier: Modifier = Modifier
 ) {
-    Column {
+    Column(modifier = modifier) {
         Text(
             text = title,
-            color = TextMuted,
+            color = InkMuted,
             fontSize = 9.sp,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 0.5.sp
+            letterSpacing = 0.8.sp
         )
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = value,
-            color = color,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.ExtraBold
+            fontFamily = OutfitDisplayFont,
+            color = accentColor,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

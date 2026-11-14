@@ -1,11 +1,11 @@
 package com.example.model
 
 enum class RarityTier(val label: String, val basePoints: Int, val colorHex: Long) {
-    COMMON("Common", 50, 0xFF78909CL),
-    UNCOMMON("Uncommon", 150, 0xFF29B6F6L),
-    RARE("Rare", 400, 0xFFAB47BCL),
-    EXOTIC("Exotic", 850, 0xFFFF9800L),
-    LEGENDARY("Hypercar / Legendary", 1800, 0xFFFF1744L)
+    COMMON("Common", 50, 0xFF64748BL),
+    UNCOMMON("Uncommon", 150, 0xFF0284C7L),
+    RARE("Rare", 400, 0xFF4F46E5L),
+    EXOTIC("Exotic", 850, 0xFFD97706L),
+    LEGENDARY("Hypercar / Legendary", 1800, 0xFFDC2626L)
 }
 
 data class CarSpot(

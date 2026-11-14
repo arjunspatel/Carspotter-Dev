@@ -1,6 +1,6 @@
 package com.example.ui.components
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,21 +15,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.VerifiedUser
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -43,28 +39,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import com.example.R
 import com.example.model.CarSpot
-import com.example.ui.theme.ApexCrimson
-import com.example.ui.theme.CarbonBorder
-import com.example.ui.theme.CarbonCard
-import com.example.ui.theme.CarbonCardElevated
-import com.example.ui.theme.CarbonDark
-import com.example.ui.theme.EmeraldGreen
-import com.example.ui.theme.GoldenTrophy
-import com.example.ui.theme.NitroCyan
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.TurboAmber
+import com.example.ui.theme.CobaltAccent
+import com.example.ui.theme.CobaltSoft
+import com.example.ui.theme.HairlineBorder
+import com.example.ui.theme.InkMuted
+import com.example.ui.theme.InkPrimary
+import com.example.ui.theme.InkSecondary
+import com.example.ui.theme.OutfitDisplayFont
+import com.example.ui.theme.PorcelainSurface
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.RacingRed
+import com.example.ui.theme.WarmGold
 import com.example.util.SocialShareUtil
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -85,8 +76,8 @@ fun CarDetailSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = CarbonDark,
-        tonalElevation = 16.dp,
+        containerColor = PureWhite,
+        tonalElevation = 0.dp,
         modifier = Modifier.testTag("car_detail_sheet")
     ) {
         Column(
@@ -104,10 +95,10 @@ fun CarDetailSheet(
             ) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(tierColor.copy(alpha = 0.2f))
-                        .border(1.dp, tierColor, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(tierColor.copy(alpha = 0.12f))
+                        .border(1.dp, tierColor.copy(alpha = 0.35f), RoundedCornerShape(999.dp))
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
                 ) {
                     Text(
                         text = "${car.rarityTier.label.uppercase()} • ${car.rarityScore}/100",
@@ -124,7 +115,7 @@ fun CarDetailSheet(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
-                        tint = TextSecondary
+                        tint = InkSecondary
                     )
                 }
             }
@@ -135,29 +126,29 @@ fun CarDetailSheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(210.dp)
                     .clip(RoundedCornerShape(18.dp))
-                    .border(1.dp, CarbonBorder, RoundedCornerShape(18.dp))
+                    .background(PorcelainSurface)
+                    .border(1.dp, HairlineBorder, RoundedCornerShape(18.dp))
             ) {
                 CarSpotImage(
                     car = car,
                     modifier = Modifier.matchParentSize()
                 )
 
-                // Points Badge
+                // Points Pill
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(12.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.Black.copy(alpha = 0.8f))
-                        .border(1.dp, tierColor, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(InkPrimary.copy(alpha = 0.92f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = "+${car.pointsAwarded} PTS",
-                        color = tierColor,
-                        fontWeight = FontWeight.ExtraBold,
+                        color = PureWhite,
+                        fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
                     )
                 }
@@ -168,15 +159,17 @@ fun CarDetailSheet(
             // Title & Trim
             Text(
                 text = "${car.year} ${car.make} ${car.model}",
-                color = TextPrimary,
+                fontFamily = OutfitDisplayFont,
+                color = InkPrimary,
                 fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.3).sp
             )
             Text(
                 text = car.trim,
-                color = NitroCyan,
+                color = CobaltAccent,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -191,39 +184,39 @@ fun CarDetailSheet(
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = null,
-                    tint = TurboAmber,
+                    tint = CobaltAccent,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "${car.locationName} • $dateFormatted",
-                    color = TextSecondary,
+                    color = InkSecondary,
                     fontSize = 12.sp
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Anti-cheat verification
+            // Anti-cheat verification (Cobalt editorial instead of neon green)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(EmeraldGreen.copy(alpha = 0.12f))
-                    .border(1.dp, EmeraldGreen.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
-                    .padding(10.dp),
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(CobaltSoft)
+                    .border(1.dp, CobaltAccent.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                    .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.VerifiedUser,
                     contentDescription = null,
-                    tint = EmeraldGreen,
+                    tint = CobaltAccent,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Authenticity Certified (Confidence: ${(car.antiCheatConfidence * 100).toInt()}%)",
-                    color = EmeraldGreen,
+                    color = CobaltAccent,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -240,14 +233,14 @@ fun CarDetailSheet(
                     icon = Icons.Default.ElectricBolt,
                     title = "HORSEPOWER",
                     value = "${car.horsepower} HP",
-                    accentColor = TurboAmber,
+                    accentColor = WarmGold,
                     modifier = Modifier.weight(1f)
                 )
                 SpecBadge(
                     icon = Icons.Default.Speed,
                     title = "0-60 MPH",
                     value = "${car.zeroToSixtyMph}s",
-                    accentColor = NitroCyan,
+                    accentColor = CobaltAccent,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -262,7 +255,7 @@ fun CarDetailSheet(
                     icon = Icons.Default.Speed,
                     title = "TOP SPEED",
                     value = "${car.topSpeedMph} MPH",
-                    accentColor = ApexCrimson,
+                    accentColor = RacingRed,
                     modifier = Modifier.weight(1f)
                 )
                 val formattedPrice = NumberFormat.getCurrencyInstance(Locale.US).apply {
@@ -272,7 +265,7 @@ fun CarDetailSheet(
                     icon = Icons.Default.AttachMoney,
                     title = "EST. MSRP",
                     value = formattedPrice,
-                    accentColor = GoldenTrophy,
+                    accentColor = InkPrimary,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -283,14 +276,14 @@ fun CarDetailSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(CarbonCard)
-                    .border(1.dp, CarbonBorder, RoundedCornerShape(14.dp))
-                    .padding(14.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(PorcelainSurface)
+                    .border(1.dp, HairlineBorder, RoundedCornerShape(16.dp))
+                    .padding(16.dp)
             ) {
                 Text(
                     text = "ENGINE SPECIFICATION",
-                    color = TextMuted,
+                    color = InkMuted,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -298,28 +291,29 @@ fun CarDetailSheet(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = car.engineType,
-                    color = TextPrimary,
+                    color = InkPrimary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = car.drivetrain,
-                    color = TextSecondary,
+                    color = InkSecondary,
                     fontSize = 12.sp
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = car.description,
-                    color = TextSecondary,
+                    color = InkSecondary,
                     fontSize = 12.sp,
                     lineHeight = 17.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "💡 ${car.trivia}",
-                    color = TurboAmber,
+                    text = "Trivia: ${car.trivia}",
+                    color = CobaltAccent,
                     fontSize = 11.sp,
-                    lineHeight = 15.sp
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 16.sp
                 )
             }
 
@@ -329,19 +323,19 @@ fun CarDetailSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(CarbonCardElevated)
-                    .border(1.dp, CarbonBorder, RoundedCornerShape(14.dp))
-                    .padding(12.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(PorcelainSurface)
+                    .border(1.dp, HairlineBorder, RoundedCornerShape(16.dp))
+                    .padding(14.dp)
             ) {
                 Text(
                     text = "SHARE TROPHY",
-                    color = NitroCyan,
+                    color = InkMuted,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -349,7 +343,7 @@ fun CarDetailSheet(
                 ) {
                     SocialPlatformButton(
                         platformName = "X / Twitter",
-                        containerColor = Color(0xFF1D9BF0),
+                        containerColor = Color(0xFF0F172A),
                         contentColor = Color.White,
                         onClick = { SocialShareUtil.shareToTwitter(context, car) },
                         modifier = Modifier.weight(1f),
@@ -375,15 +369,15 @@ fun CarDetailSheet(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(CarbonCard)
-                            .border(1.dp, CarbonBorder, RoundedCornerShape(8.dp))
+                            .background(PureWhite)
+                            .border(1.dp, HairlineBorder, RoundedCornerShape(8.dp))
                             .clickable { SocialShareUtil.shareGeneric(context, car) },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Public,
                             contentDescription = "Share",
-                            tint = TextPrimary,
+                            tint = InkPrimary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -397,16 +391,15 @@ fun CarDetailSheet(
                 onClick = { onDelete(car) },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(48.dp)
                     .testTag("detail_delete_button"),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ApexCrimson),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(ApexCrimson.copy(alpha = 0.5f))
-                ),
-                shape = RoundedCornerShape(12.dp)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = RacingRed),
+                border = BorderStroke(1.dp, RacingRed.copy(alpha = 0.45f)),
+                shape = RoundedCornerShape(999.dp)
             ) {
                 Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Remove from Garage", fontSize = 12.sp)
+                Text("Remove from Garage", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }

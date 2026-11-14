@@ -16,8 +16,11 @@ import com.google.firebase.Firebase
 import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.GenerativeBackend
 import com.google.firebase.ai.type.Schema
+import com.google.firebase.ai.type.ThinkingLevel
 import com.google.firebase.ai.type.content
 import com.google.firebase.ai.type.generationConfig
+import com.google.firebase.ai.type.thinkingConfig
+import com.google.firebase.appcheck.FirebaseAppCheck
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
@@ -33,7 +36,7 @@ import java.net.UnknownHostException
 import java.util.UUID
 
 private const val TAG = "CarRecognitionEngine"
-private const val AI_TIMEOUT_MS = 60_000L
+private const val AI_TIMEOUT_MS = 45_000L
 
 enum class RecognitionStatus {
     SUCCESS,
@@ -98,21 +101,40 @@ class CarRecognitionEngine(private val context: Context) {
 
     private val geminiModel by lazy {
         Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
-            modelName = "gemini-3.8-flash",
+            modelName = "gemini-3.5-flash-lite",
             generationConfig = generationConfig {
                 responseMimeType = "application/json"
                 responseSchema = carSchema
                 temperature = 0.2f
+                maxOutputTokens = 512
+                thinkingConfig = thinkingConfig {
+                    thinkingLevel = ThinkingLevel.MINIMAL
+                }
             }
         )
     }
 
     /**
+     * Pre-warms Firebase App Check token and Gemini model instance while the user frames a car,
+     * eliminating cold-start attestation & client setup delay at shutter tap.
+     */
+    suspend fun warmUp() {
+        withContext(Dispatchers.IO) {
+            try {
+                geminiModel
+                FirebaseAppCheck.getInstance().getAppCheckToken(false)
+            } catch (e: Exception) {
+                Log.w(TAG, "Warm-up skipped: ${e.message}")
+            }
+        }
+    }
+
+    /**
      * Fast autonomous vehicle recognition & AI anti-cheat evaluation:
-     * 1. Pre-checks active network capability cleanly in <5ms.
-     * 2. Uses already-captured in-memory Bitmap (or decodes from disk off main thread).
-     * 3. Local on-device CV filter catches completely blank/obscured frames.
-     * 4. Compresses frame to compact ~30KB 512px JPEG and invokes Gemini 3.8 Flash with a 60s timeout.
+     * 1. Uses already-captured in-memory Bitmap (or decodes from disk off main thread).
+     * 2. Local on-device CV filter catches completely blank/obscured frames.
+     * 3. Pre-checks active network capability cleanly in <5ms.
+     * 4. Compresses frame to compact ~18KB 448px JPEG and invokes Gemini 3.5 Flash-Lite (MINIMAL thinking).
      */
     suspend fun analyzeVehicleImage(
         photoUri: String?,
@@ -146,7 +168,7 @@ class CarRecognitionEngine(private val context: Context) {
                 return@withContext PreparedFrame.UniformSurface(surfaceType)
             }
 
-            val maxDim = 512
+            val maxDim = 448
             val scale = minOf(maxDim.toFloat() / bitmap.width, maxDim.toFloat() / bitmap.height, 1.0f)
             val scaledBitmap = if (scale < 1.0f) {
                 Bitmap.createScaledBitmap(
@@ -160,7 +182,7 @@ class CarRecognitionEngine(private val context: Context) {
             }
 
             val baos = ByteArrayOutputStream()
-            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 78, baos)
+            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 75, baos)
             val jpegBytes = baos.toByteArray()
             Log.d(TAG, "Prepared JPEG payload: ${scaledBitmap.width}x${scaledBitmap.height}, ${jpegBytes.size} bytes")
             PreparedFrame.Ready(jpegBytes)
@@ -378,12 +400,12 @@ class CarRecognitionEngine(private val context: Context) {
                     isAuthentic = false,
                     confidence = 0.0f,
                     verdict = "AI REQUEST TIMED OUT",
-                    details = "The AI service took over 60 seconds to respond. Check your Wi-Fi or mobile signal and tap Retry.",
-                    detectionFlags = listOf("60s Cloud Timeout", "Slow / Interrupted Connection")
+                    details = "The AI service took over 45 seconds to respond. Check your Wi-Fi or mobile signal and tap Retry.",
+                    detectionFlags = listOf("45s Cloud Timeout", "Slow / Interrupted Connection")
                 ),
                 isSuccess = false,
                 status = RecognitionStatus.NETWORK_OR_TIMEOUT,
-                errorMessage = "AI recognition timed out after 60s. Check your connection and tap Retry."
+                errorMessage = "AI recognition timed out after 45s. Check your connection and tap Retry."
             )
         } catch (e: CancellationException) {
             throw e

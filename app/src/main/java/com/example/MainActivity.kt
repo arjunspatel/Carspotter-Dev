@@ -2,23 +2,26 @@ package com.example
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,29 +31,24 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Login
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import coil.compose.AsyncImage
-import com.example.ui.theme.EmeraldGreen
-import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.outlined.People
-import com.example.ui.screens.FriendsScreen
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -58,12 +56,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.ui.CarSpotterViewModel
 import com.example.ui.TabDestination
 import com.example.ui.components.CarDetailSheet
@@ -71,15 +71,19 @@ import com.example.ui.components.TrophyRevealDialog
 import com.example.ui.screens.CameraCaptureScreen
 import com.example.ui.screens.CollectionScreen
 import com.example.ui.screens.CommunityScreen
+import com.example.ui.screens.FriendsScreen
 import com.example.ui.screens.MapSpotScreen
-import com.example.ui.theme.CarbonBorder
-import com.example.ui.theme.CarbonCard
-import com.example.ui.theme.CarbonDark
 import com.example.ui.theme.CarSpotterTheme
-import com.example.ui.theme.NitroCyan
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TurboAmber
+import com.example.ui.theme.CobaltAccent
+import com.example.ui.theme.HairlineBorder
+import com.example.ui.theme.InkMuted
+import com.example.ui.theme.InkPrimary
+import com.example.ui.theme.InkSecondary
+import com.example.ui.theme.MistSurface
+import com.example.ui.theme.OutfitDisplayFont
+import com.example.ui.theme.PorcelainSurface
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.RacingRed
 import com.example.util.configureAppCheck
 
 class MainActivity : ComponentActivity() {
@@ -101,7 +105,16 @@ class MainActivity : ComponentActivity() {
             android.util.Log.e("MainActivity", "Firestore initialization: ${e.message}")
         }
 
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                android.graphics.Color.WHITE,
+                android.graphics.Color.WHITE
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                android.graphics.Color.WHITE,
+                android.graphics.Color.WHITE
+            )
+        )
 
         setContent {
             CarSpotterTheme {
@@ -129,6 +142,7 @@ fun CarSpotterApp(viewModel: CarSpotterViewModel) {
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
+            .background(PureWhite)
             .windowInsetsPadding(WindowInsets.statusBars),
         topBar = {
             if (currentTab != TabDestination.SPOT) {
@@ -145,11 +159,12 @@ fun CarSpotterApp(viewModel: CarSpotterViewModel) {
                 onTabSelected = { viewModel.setTab(it) }
             )
         },
-        containerColor = CarbonDark
+        containerColor = PureWhite
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(PureWhite)
                 .padding(innerPadding)
         ) {
             when (currentTab) {
@@ -162,7 +177,7 @@ fun CarSpotterApp(viewModel: CarSpotterViewModel) {
         }
     }
 
-    // Celebratory Trophy Reveal Popup after snapping a car: Displays processed Bitmap directly!
+    // Trophy / Diagnostic Dialog
     if (showTrophyDialog && latestResult != null) {
         TrophyRevealDialog(
             result = latestResult!!,
@@ -187,172 +202,170 @@ fun CarSpotterBottomBar(
     currentTab: TabDestination,
     onTabSelected: (TabDestination) -> Unit
 ) {
-    NavigationBar(
-        modifier = Modifier
-            .navigationBarsPadding()
-            .testTag("carspotter_bottom_nav"),
-        containerColor = CarbonCard,
-        tonalElevation = 8.dp
-    ) {
-        // Tab 1: Collection / Garage
-        NavigationBarItem(
-            selected = currentTab == TabDestination.COLLECTION,
-            onClick = { onTabSelected(TabDestination.COLLECTION) },
-            icon = {
-                Icon(
-                    imageVector = if (currentTab == TabDestination.COLLECTION) Icons.Filled.DirectionsCar else Icons.Outlined.DirectionsCar,
-                    contentDescription = "Garage Collection",
-                    modifier = Modifier.size(22.dp)
-                )
-            },
-            label = {
-                Text(
-                    text = "Garage",
-                    fontSize = 10.sp,
-                    fontWeight = if (currentTab == TabDestination.COLLECTION) FontWeight.Bold else FontWeight.Normal
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.Black,
-                selectedTextColor = TurboAmber,
-                indicatorColor = TurboAmber,
-                unselectedIconColor = TextMuted,
-                unselectedTextColor = TextMuted
-            ),
-            modifier = Modifier.testTag("nav_item_garage")
-        )
-
-        // Tab 2: Spot Map / Radar
-        NavigationBarItem(
-            selected = currentTab == TabDestination.MAP,
-            onClick = { onTabSelected(TabDestination.MAP) },
-            icon = {
-                Icon(
-                    imageVector = if (currentTab == TabDestination.MAP) Icons.Filled.LocationOn else Icons.Outlined.LocationOn,
-                    contentDescription = "Radar Map",
-                    modifier = Modifier.size(22.dp)
-                )
-            },
-            label = {
-                Text(
-                    text = "Radar",
-                    fontSize = 10.sp,
-                    fontWeight = if (currentTab == TabDestination.MAP) FontWeight.Bold else FontWeight.Normal
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.Black,
-                selectedTextColor = NitroCyan,
-                indicatorColor = NitroCyan,
-                unselectedIconColor = TextMuted,
-                unselectedTextColor = TextMuted
-            ),
-            modifier = Modifier.testTag("nav_item_map")
-        )
-
-        // Tab 3: Spot / Camera - PROMINENT CENTER ACTION
-        NavigationBarItem(
-            selected = currentTab == TabDestination.SPOT,
-            onClick = { onTabSelected(TabDestination.SPOT) },
-            icon = {
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (currentTab == TabDestination.SPOT)
-                                Brush.radialGradient(listOf(TurboAmber, Color(0xFFCC5500)))
-                            else
-                                Brush.radialGradient(listOf(TurboAmber.copy(alpha = 0.25f), CarbonCard))
-                        )
-                        .border(
-                            1.5.dp,
-                            if (currentTab == TabDestination.SPOT) TurboAmber else TurboAmber.copy(alpha = 0.6f),
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
+    Column(modifier = Modifier.background(PureWhite)) {
+        HorizontalDivider(thickness = 1.dp, color = HairlineBorder)
+        NavigationBar(
+            modifier = Modifier
+                .navigationBarsPadding()
+                .testTag("carspotter_bottom_nav"),
+            containerColor = PureWhite,
+            tonalElevation = 0.dp
+        ) {
+            // Tab 1: Collection / Garage
+            NavigationBarItem(
+                selected = currentTab == TabDestination.COLLECTION,
+                onClick = { onTabSelected(TabDestination.COLLECTION) },
+                icon = {
                     Icon(
-                        imageVector = Icons.Filled.CameraAlt,
-                        contentDescription = "Spot Car",
-                        tint = if (currentTab == TabDestination.SPOT) Color.Black else TurboAmber,
-                        modifier = Modifier.size(18.dp)
+                        imageVector = if (currentTab == TabDestination.COLLECTION) Icons.Filled.DirectionsCar else Icons.Outlined.DirectionsCar,
+                        contentDescription = "Garage Collection",
+                        modifier = Modifier.size(22.dp)
                     )
-                }
-            },
-            label = {
-                Text(
-                    text = "Spot",
-                    fontSize = 10.sp,
-                    color = TurboAmber,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.Black,
-                selectedTextColor = TurboAmber,
-                indicatorColor = Color.Transparent,
-                unselectedIconColor = TurboAmber,
-                unselectedTextColor = TurboAmber
-            ),
-            modifier = Modifier.testTag("nav_item_spot")
-        )
+                },
+                label = {
+                    Text(
+                        text = "Garage",
+                        fontSize = 10.sp,
+                        fontWeight = if (currentTab == TabDestination.COLLECTION) FontWeight.Bold else FontWeight.Medium
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = InkPrimary,
+                    selectedTextColor = InkPrimary,
+                    indicatorColor = MistSurface,
+                    unselectedIconColor = InkMuted,
+                    unselectedTextColor = InkMuted
+                ),
+                modifier = Modifier.testTag("nav_item_garage")
+            )
 
-        // Tab 4: Friends Feed & Battles
-        NavigationBarItem(
-            selected = currentTab == TabDestination.FRIENDS,
-            onClick = { onTabSelected(TabDestination.FRIENDS) },
-            icon = {
-                Icon(
-                    imageVector = if (currentTab == TabDestination.FRIENDS) Icons.Filled.People else Icons.Outlined.People,
-                    contentDescription = "Friends",
-                    modifier = Modifier.size(22.dp)
-                )
-            },
-            label = {
-                Text(
-                    text = "Friends",
-                    fontSize = 10.sp,
-                    fontWeight = if (currentTab == TabDestination.FRIENDS) FontWeight.Bold else FontWeight.Normal
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.Black,
-                selectedTextColor = NitroCyan,
-                indicatorColor = NitroCyan,
-                unselectedIconColor = TextMuted,
-                unselectedTextColor = TextMuted
-            ),
-            modifier = Modifier.testTag("nav_item_friends")
-        )
+            // Tab 2: Spot Map / Radar
+            NavigationBarItem(
+                selected = currentTab == TabDestination.MAP,
+                onClick = { onTabSelected(TabDestination.MAP) },
+                icon = {
+                    Icon(
+                        imageVector = if (currentTab == TabDestination.MAP) Icons.Filled.LocationOn else Icons.Outlined.LocationOn,
+                        contentDescription = "Radar Map",
+                        modifier = Modifier.size(22.dp)
+                    )
+                },
+                label = {
+                    Text(
+                        text = "Radar",
+                        fontSize = 10.sp,
+                        fontWeight = if (currentTab == TabDestination.MAP) FontWeight.Bold else FontWeight.Medium
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = InkPrimary,
+                    selectedTextColor = InkPrimary,
+                    indicatorColor = MistSurface,
+                    unselectedIconColor = InkMuted,
+                    unselectedTextColor = InkMuted
+                ),
+                modifier = Modifier.testTag("nav_item_map")
+            )
 
-        // Tab 5: Community & Global Leaderboards
-        NavigationBarItem(
-            selected = currentTab == TabDestination.COMMUNITY,
-            onClick = { onTabSelected(TabDestination.COMMUNITY) },
-            icon = {
-                Icon(
-                    imageVector = if (currentTab == TabDestination.COMMUNITY) Icons.Filled.EmojiEvents else Icons.Outlined.EmojiEvents,
-                    contentDescription = "Community",
-                    modifier = Modifier.size(22.dp)
-                )
-            },
-            label = {
-                Text(
-                    text = "Community",
-                    fontSize = 10.sp,
-                    fontWeight = if (currentTab == TabDestination.COMMUNITY) FontWeight.Bold else FontWeight.Normal
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.Black,
-                selectedTextColor = TurboAmber,
-                indicatorColor = TurboAmber,
-                unselectedIconColor = TextMuted,
-                unselectedTextColor = TextMuted
-            ),
-            modifier = Modifier.testTag("nav_item_community")
-        )
+            // Tab 3: Spot / Camera - Clean Editorial Center Action
+            NavigationBarItem(
+                selected = currentTab == TabDestination.SPOT,
+                onClick = { onTabSelected(TabDestination.SPOT) },
+                icon = {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (currentTab == TabDestination.SPOT) InkPrimary else PorcelainSurface)
+                            .border(
+                                1.5.dp,
+                                if (currentTab == TabDestination.SPOT) InkPrimary else HairlineBorder,
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CameraAlt,
+                            contentDescription = "Spot Car",
+                            tint = if (currentTab == TabDestination.SPOT) PureWhite else InkPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                },
+                label = {
+                    Text(
+                        text = "Spot",
+                        fontSize = 10.sp,
+                        color = if (currentTab == TabDestination.SPOT) InkPrimary else InkMuted,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = PureWhite,
+                    selectedTextColor = InkPrimary,
+                    indicatorColor = Color.Transparent,
+                    unselectedIconColor = InkPrimary,
+                    unselectedTextColor = InkMuted
+                ),
+                modifier = Modifier.testTag("nav_item_spot")
+            )
+
+            // Tab 4: Friends Feed & Battles
+            NavigationBarItem(
+                selected = currentTab == TabDestination.FRIENDS,
+                onClick = { onTabSelected(TabDestination.FRIENDS) },
+                icon = {
+                    Icon(
+                        imageVector = if (currentTab == TabDestination.FRIENDS) Icons.Filled.People else Icons.Outlined.People,
+                        contentDescription = "Friends",
+                        modifier = Modifier.size(22.dp)
+                    )
+                },
+                label = {
+                    Text(
+                        text = "Friends",
+                        fontSize = 10.sp,
+                        fontWeight = if (currentTab == TabDestination.FRIENDS) FontWeight.Bold else FontWeight.Medium
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = InkPrimary,
+                    selectedTextColor = InkPrimary,
+                    indicatorColor = MistSurface,
+                    unselectedIconColor = InkMuted,
+                    unselectedTextColor = InkMuted
+                ),
+                modifier = Modifier.testTag("nav_item_friends")
+            )
+
+            // Tab 5: Community & Global Leaderboards
+            NavigationBarItem(
+                selected = currentTab == TabDestination.COMMUNITY,
+                onClick = { onTabSelected(TabDestination.COMMUNITY) },
+                icon = {
+                    Icon(
+                        imageVector = if (currentTab == TabDestination.COMMUNITY) Icons.Filled.EmojiEvents else Icons.Outlined.EmojiEvents,
+                        contentDescription = "Community",
+                        modifier = Modifier.size(22.dp)
+                    )
+                },
+                label = {
+                    Text(
+                        text = "Community",
+                        fontSize = 10.sp,
+                        fontWeight = if (currentTab == TabDestination.COMMUNITY) FontWeight.Bold else FontWeight.Medium
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = InkPrimary,
+                    selectedTextColor = InkPrimary,
+                    indicatorColor = MistSurface,
+                    unselectedIconColor = InkMuted,
+                    unselectedTextColor = InkMuted
+                ),
+                modifier = Modifier.testTag("nav_item_community")
+            )
+        }
     }
 }
 
@@ -362,121 +375,132 @@ fun CarSpotterTopBar(
     onSignInClick: () -> Unit,
     onProfileClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(CarbonCard)
-            .border(1.dp, CarbonBorder)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // App Branding
+    Column(modifier = Modifier.background(PureWhite)) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.clickable(onClick = onProfileClick)
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(PureWhite)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(TurboAmber.copy(alpha = 0.2f))
-                    .border(1.dp, TurboAmber, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DirectionsCar,
-                    contentDescription = null,
-                    tint = TurboAmber,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            Column {
-                Text(
-                    text = "CarSpotter",
-                    color = TextPrimary,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 0.5.sp
-                )
-                Text(
-                    text = "AI TROPHY RADAR",
-                    color = NitroCyan,
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-            }
-        }
-
-        // Auth Identity Button
-        if (authUser == null) {
-            Button(
-                onClick = onSignInClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black
-                ),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier
-                    .height(34.dp)
-                    .testTag("topbar_google_signin_button"),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Login,
-                    contentDescription = null,
-                    tint = Color(0xFF4285F4),
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Sign In", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-            }
-        } else {
+            // Editorial Website Brand Header with Cartoony Classic Car Logo
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CarbonDark)
-                    .border(1.dp, EmeraldGreen.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-                    .clickable(onClick = onProfileClick)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                    .testTag("topbar_user_profile")
+                modifier = Modifier.clickable(onClick = onProfileClick)
             ) {
-                if (authUser.photoUrl != null) {
-                    AsyncImage(
-                        model = authUser.photoUrl,
-                        contentDescription = "Avatar",
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(PureWhite)
+                        .border(1.dp, HairlineBorder, RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.carspotter_cartoon_car_logo_1794609260359),
+                        contentDescription = "CarSpotter Logo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
                     )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(EmeraldGreen),
-                        contentAlignment = Alignment.Center
-                    ) {
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "CarSpotter",
+                        fontFamily = OutfitDisplayFont,
+                        color = InkPrimary,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.4).sp
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(RacingRed)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = authUser.displayName?.take(1) ?: "U",
-                            color = Color.Black,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                            text = "GARAGE EDITION",
+                            color = InkMuted,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.2.sp
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = authUser.displayName?.split(" ")?.first() ?: "Spotter",
-                    color = TextPrimary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            }
+
+            // Auth Identity Pill
+            if (authUser == null) {
+                Button(
+                    onClick = onSignInClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = InkPrimary,
+                        contentColor = PureWhite
+                    ),
+                    shape = RoundedCornerShape(999.dp),
+                    modifier = Modifier
+                        .height(36.dp)
+                        .testTag("topbar_google_signin_button"),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Login,
+                        contentDescription = null,
+                        tint = PureWhite,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Sign In", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PureWhite)
+                }
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(PorcelainSurface)
+                        .border(1.dp, HairlineBorder, RoundedCornerShape(999.dp))
+                        .clickable(onClick = onProfileClick)
+                        .padding(start = 5.dp, end = 12.dp, top = 5.dp, bottom = 5.dp)
+                        .testTag("topbar_user_profile")
+                ) {
+                    if (authUser.photoUrl != null) {
+                        AsyncImage(
+                            model = authUser.photoUrl,
+                            contentDescription = "Avatar",
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(CobaltAccent),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = authUser.displayName?.take(1) ?: "U",
+                                color = PureWhite,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = authUser.displayName?.split(" ")?.first() ?: "Spotter",
+                        color = InkPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
+        HorizontalDivider(thickness = 1.dp, color = HairlineBorder)
     }
 }
-

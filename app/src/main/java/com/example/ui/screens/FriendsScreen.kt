@@ -1,9 +1,8 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,15 +24,12 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,7 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -52,21 +47,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.model.CarSpot
 import com.example.model.FriendActivity
-import com.example.model.RarityTier
 import com.example.ui.CarSpotterViewModel
-import com.example.ui.theme.ApexCrimson
-import com.example.ui.theme.CarbonBorder
-import com.example.ui.theme.CarbonCard
-import com.example.ui.theme.CarbonCardElevated
-import com.example.ui.theme.CarbonDark
-import com.example.ui.theme.EmeraldGreen
-import com.example.ui.theme.GoldenTrophy
-import com.example.ui.theme.NitroCyan
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.TurboAmber
+import com.example.ui.theme.CobaltAccent
+import com.example.ui.theme.CobaltSoft
+import com.example.ui.theme.HairlineBorder
+import com.example.ui.theme.InkMuted
+import com.example.ui.theme.InkPrimary
+import com.example.ui.theme.InkSecondary
+import com.example.ui.theme.OutfitDisplayFont
+import com.example.ui.theme.PorcelainSurface
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.RacingRed
+import com.example.ui.theme.WarmGold
+import com.example.ui.theme.WarmGoldSoft
 
 @Composable
 fun FriendsScreen(
@@ -79,12 +74,12 @@ fun FriendsScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(CarbonDark)
+            .background(PureWhite)
             .testTag("friends_screen"),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Screen Header
+        // Editorial Screen Header
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -93,50 +88,59 @@ fun FriendsScreen(
             ) {
                 Column {
                     Text(
-                        text = "FRIENDS GARAGE",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Black,
-                        color = TextPrimary,
-                        letterSpacing = 1.sp
+                        text = "SOCIAL FEED",
+                        color = CobaltAccent,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.4.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Friends Garage.",
+                        fontFamily = OutfitDisplayFont,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = InkPrimary,
+                        letterSpacing = (-0.5).sp
                     )
                     Text(
                         text = "Live exotic spots and garage head-to-head battles",
                         fontSize = 12.sp,
-                        color = TextMuted
+                        color = InkSecondary
                     )
                 }
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(42.dp)
                         .clip(CircleShape)
-                        .background(CarbonCardElevated)
-                        .border(1.dp, CarbonBorder, CircleShape),
+                        .background(PorcelainSurface)
+                        .border(1.dp, HairlineBorder, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.People,
                         contentDescription = "Friends",
-                        tint = NitroCyan,
+                        tint = InkPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
             }
         }
 
-        // Quick Battle Banner
+        // Quick Battle Editorial Banner
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("garage_battle_banner"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = CarbonCard),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CarbonBorder)
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = PorcelainSurface),
+                border = BorderStroke(1.dp, HairlineBorder)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(18.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -145,32 +149,36 @@ fun FriendsScreen(
                             Icon(
                                 imageVector = Icons.Default.ElectricBolt,
                                 contentDescription = null,
-                                tint = TurboAmber,
+                                tint = WarmGold,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "GARAGE BATTLES ACTIVE",
-                                color = TurboAmber,
-                                fontSize = 11.sp,
+                                color = WarmGold,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
+                                letterSpacing = 1.2.sp
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Challenge a friend to compare your top horsepower and rarity score.",
-                            color = TextSecondary,
+                            color = InkSecondary,
                             fontSize = 12.sp
                         )
                     }
 
                     if (friendsFeed.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(12.dp))
                         Button(
                             onClick = { compareFriend = friendsFeed.first() },
-                            colors = ButtonDefaults.buttonColors(containerColor = TurboAmber, contentColor = Color.Black),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = InkPrimary,
+                                contentColor = PureWhite
+                            ),
+                            shape = RoundedCornerShape(999.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 9.dp)
                         ) {
                             Text("Quick Battle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
@@ -183,10 +191,10 @@ fun FriendsScreen(
         item {
             Text(
                 text = "RECENT FRIEND SIGHTINGS (${friendsFeed.size})",
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextMuted,
-                letterSpacing = 1.5.sp,
+                color = InkMuted,
+                letterSpacing = 1.3.sp,
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
@@ -220,16 +228,18 @@ private fun FriendSpotCard(
     activity: FriendActivity,
     onBattleClick: () -> Unit
 ) {
+    val tierColor = Color(activity.rarityTier.colorHex)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("friend_spot_${activity.id}"),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CarbonCard),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CarbonBorder)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = PureWhite),
+        border = BorderStroke(1.dp, HairlineBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            // Friend header
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -238,16 +248,17 @@ private fun FriendSpotCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(38.dp)
                             .clip(CircleShape)
-                            .background(Brush.radialGradient(listOf(NitroCyan.copy(alpha = 0.3f), CarbonCardElevated)))
-                            .border(1.dp, NitroCyan.copy(alpha = 0.5f), CircleShape),
+                            .background(CobaltSoft)
+                            .border(1.dp, CobaltAccent.copy(alpha = 0.25f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = activity.username.take(1).uppercase(),
-                            color = NitroCyan,
-                            fontSize = 14.sp,
+                            fontFamily = OutfitDisplayFont,
+                            color = CobaltAccent,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -258,8 +269,8 @@ private fun FriendSpotCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = activity.username,
-                                color = TextPrimary,
-                                fontSize = 13.sp,
+                                color = InkPrimary,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             if (activity.isVerified) {
@@ -267,33 +278,34 @@ private fun FriendSpotCard(
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = "Verified Sighting",
-                                    tint = EmeraldGreen,
-                                    modifier = Modifier.size(13.dp)
+                                    tint = CobaltAccent,
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
                         Text(
                             text = "${activity.handle} • ${activity.timeAgo}",
-                            color = TextMuted,
+                            color = InkMuted,
                             fontSize = 11.sp
                         )
                     }
                 }
 
-                // Battle button
+                // Battle pill button
                 Button(
                     onClick = onBattleClick,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = CarbonCardElevated,
-                        contentColor = TurboAmber
+                        containerColor = PorcelainSurface,
+                        contentColor = InkPrimary
                     ),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CarbonBorder)
+                    shape = RoundedCornerShape(999.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    border = BorderStroke(1.dp, HairlineBorder)
                 ) {
                     Icon(
                         imageVector = Icons.Default.CompareArrows,
                         contentDescription = null,
+                        tint = CobaltAccent,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -301,29 +313,31 @@ private fun FriendSpotCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Car Sighting Details
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CarbonCardElevated)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(PorcelainSurface)
+                    .border(1.dp, HairlineBorder, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = activity.carName,
-                        color = TextPrimary,
-                        fontSize = 13.sp,
+                        fontFamily = OutfitDisplayFont,
+                        color = InkPrimary,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = activity.location,
-                        color = TextMuted,
-                        fontSize = 10.sp
+                        color = InkMuted,
+                        fontSize = 11.sp
                     )
                 }
 
@@ -331,12 +345,12 @@ private fun FriendSpotCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Color(activity.rarityTier.colorHex).copy(alpha = 0.2f))
-                            .padding(horizontal = 7.dp, vertical = 3.dp)
+                            .background(tierColor.copy(alpha = 0.12f))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = activity.rarityTier.label.uppercase(),
-                            color = Color(activity.rarityTier.colorHex),
+                            color = tierColor,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -344,12 +358,19 @@ private fun FriendSpotCard(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Text(
-                        text = "+${activity.pointsEarned} pts",
-                        color = TurboAmber,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(WarmGoldSoft)
+                            .padding(horizontal = 7.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = "+${activity.pointsEarned} pts",
+                            color = WarmGold,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -359,7 +380,7 @@ private fun FriendSpotCard(
 @Composable
 private fun GarageBattleDialog(
     friend: FriendActivity,
-    userBestCar: com.example.model.CarSpot?,
+    userBestCar: CarSpot?,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -368,43 +389,56 @@ private fun GarageBattleDialog(
                 .fillMaxWidth()
                 .padding(8.dp)
                 .testTag("garage_battle_modal"),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = CarbonCard),
-            border = androidx.compose.foundation.BorderStroke(1.dp, NitroCyan)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = PureWhite),
+            border = BorderStroke(1.dp, HairlineBorder),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier.padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Default.CompareArrows,
-                    contentDescription = null,
-                    tint = TurboAmber,
-                    modifier = Modifier.size(36.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(CobaltSoft),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CompareArrows,
+                        contentDescription = null,
+                        tint = CobaltAccent,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "GARAGE BATTLE SHOWDOWN",
-                    color = TextPrimary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp
+                    text = "Garage Battle Showdown",
+                    fontFamily = OutfitDisplayFont,
+                    color = InkPrimary,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
 
                 Text(
                     text = "Head-to-head spec comparison",
-                    color = TextMuted,
-                    fontSize = 11.sp
+                    color = InkMuted,
+                    fontSize = 12.sp
                 )
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(thickness = 1.dp, color = HairlineBorder)
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Comparison grid
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     // User Side
                     Column(
@@ -413,7 +447,7 @@ private fun GarageBattleDialog(
                     ) {
                         Text(
                             text = "YOUR GARAGE",
-                            color = NitroCyan,
+                            color = CobaltAccent,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
@@ -421,7 +455,7 @@ private fun GarageBattleDialog(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = userBestCar?.let { "${it.make} ${it.model}" } ?: "No Spot Yet",
-                            color = TextPrimary,
+                            color = InkPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
@@ -429,13 +463,14 @@ private fun GarageBattleDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "${userBestCar?.horsepower ?: 0} HP",
-                            color = TurboAmber,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Black
+                            fontFamily = OutfitDisplayFont,
+                            color = InkPrimary,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "${userBestCar?.topSpeedMph ?: 0} MPH",
-                            color = TextSecondary,
+                            color = InkSecondary,
                             fontSize = 11.sp
                         )
                     }
@@ -445,13 +480,13 @@ private fun GarageBattleDialog(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(CarbonCardElevated)
-                            .border(1.dp, CarbonBorder, CircleShape),
+                            .background(PorcelainSurface)
+                            .border(1.dp, HairlineBorder, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "VS",
-                            color = ApexCrimson,
+                            color = RacingRed,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Black
                         )
@@ -464,7 +499,7 @@ private fun GarageBattleDialog(
                     ) {
                         Text(
                             text = friend.username.uppercase(),
-                            color = GoldenTrophy,
+                            color = WarmGold,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
@@ -472,7 +507,7 @@ private fun GarageBattleDialog(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = friend.carName,
-                            color = TextPrimary,
+                            color = InkPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
@@ -480,25 +515,31 @@ private fun GarageBattleDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "740 HP",
-                            color = GoldenTrophy,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Black
+                            fontFamily = OutfitDisplayFont,
+                            color = WarmGold,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "206 MPH",
-                            color = TextSecondary,
+                            color = InkSecondary,
                             fontSize = 11.sp
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(22.dp))
 
                 Button(
                     onClick = onDismiss,
-                    colors = ButtonDefaults.buttonColors(containerColor = TurboAmber, contentColor = Color.Black),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = InkPrimary,
+                        contentColor = PureWhite
+                    ),
+                    shape = RoundedCornerShape(999.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp)
                 ) {
                     Text("Close Battle Result", fontWeight = FontWeight.Bold)
                 }

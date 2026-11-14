@@ -1,9 +1,9 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,15 +23,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -57,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -64,18 +62,20 @@ import com.example.model.LeaderboardEntry
 import com.example.model.PlayerSearchResult
 import com.example.model.UserProfile
 import com.example.ui.CarSpotterViewModel
-import com.example.ui.theme.ApexCrimson
-import com.example.ui.theme.CarbonBorder
-import com.example.ui.theme.CarbonCard
-import com.example.ui.theme.CarbonCardElevated
-import com.example.ui.theme.CarbonDark
-import com.example.ui.theme.EmeraldGreen
-import com.example.ui.theme.GoldenTrophy
-import com.example.ui.theme.NitroCyan
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.TurboAmber
+import com.example.ui.theme.CobaltAccent
+import com.example.ui.theme.CobaltSoft
+import com.example.ui.theme.HairlineBorder
+import com.example.ui.theme.InkMuted
+import com.example.ui.theme.InkPrimary
+import com.example.ui.theme.InkSecondary
+import com.example.ui.theme.MistSurface
+import com.example.ui.theme.OutfitDisplayFont
+import com.example.ui.theme.PorcelainSurface
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.SlateAccent
+import com.example.ui.theme.WarmGold
+import com.example.ui.theme.WarmGoldSoft
+import com.google.firebase.auth.FirebaseUser
 
 @Composable
 fun CommunityScreen(
@@ -93,12 +93,12 @@ fun CommunityScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(CarbonDark)
+            .background(PureWhite)
             .testTag("community_screen"),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Header with Title and Search Toggle Button
+        // Editorial Screen Header with Search Toggle Button
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -107,33 +107,41 @@ fun CommunityScreen(
             ) {
                 Column {
                     Text(
-                        text = "COMMUNITY & RANKS",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Black,
-                        color = TextPrimary,
-                        letterSpacing = 1.sp
+                        text = "GLOBAL STANDINGS",
+                        color = CobaltAccent,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.4.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Community.",
+                        fontFamily = OutfitDisplayFont,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = InkPrimary,
+                        letterSpacing = (-0.5).sp
                     )
                     Text(
-                        text = "Global leaderboards, spotter XP and player discovery",
+                        text = "Leaderboards, spotter XP and player discovery",
                         fontSize = 12.sp,
-                        color = TextMuted
+                        color = InkSecondary
                     )
                 }
 
-                // Search Players Action Button
                 IconButton(
                     onClick = { isSearchExpanded = !isSearchExpanded },
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
-                        .background(if (isSearchExpanded) TurboAmber else CarbonCardElevated)
-                        .border(1.dp, if (isSearchExpanded) TurboAmber else CarbonBorder, CircleShape)
+                        .background(if (isSearchExpanded) InkPrimary else PorcelainSurface)
+                        .border(1.dp, if (isSearchExpanded) InkPrimary else HairlineBorder, CircleShape)
                         .testTag("search_players_toggle_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search Players",
-                        tint = if (isSearchExpanded) Color.Black else NitroCyan,
+                        tint = if (isSearchExpanded) PureWhite else InkPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -145,11 +153,11 @@ fun CommunityScreen(
             AnimatedVisibility(visible = isSearchExpanded || searchQuery.isNotBlank()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = CarbonCard),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CarbonBorder)
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = PorcelainSurface),
+                    border = BorderStroke(1.dp, HairlineBorder)
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
@@ -157,16 +165,16 @@ fun CommunityScreen(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = null,
-                                tint = TurboAmber,
-                                modifier = Modifier.size(18.dp)
+                                tint = CobaltAccent,
+                                modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "FIND SPOTTERS & FRIENDS",
-                                color = TurboAmber,
-                                fontSize = 11.sp,
+                                color = CobaltAccent,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
+                                letterSpacing = 1.2.sp
                             )
                         }
 
@@ -178,23 +186,23 @@ fun CommunityScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("player_search_input"),
-                            placeholder = { Text("Search by name, tag, or car...", color = TextMuted, fontSize = 13.sp) },
+                            placeholder = { Text("Search by name, tag, or car...", color = InkMuted, fontSize = 13.sp) },
                             singleLine = true,
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(12.dp),
                             trailingIcon = {
                                 if (searchQuery.isNotBlank()) {
                                     IconButton(onClick = { viewModel.setPlayerSearchQuery("") }) {
-                                        Icon(Icons.Default.Clear, contentDescription = "Clear", tint = TextMuted)
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear", tint = InkMuted)
                                     }
                                 }
                             },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = CarbonCardElevated,
-                                unfocusedContainerColor = CarbonCardElevated,
-                                focusedBorderColor = TurboAmber,
-                                unfocusedBorderColor = CarbonBorder,
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary
+                                focusedContainerColor = PureWhite,
+                                unfocusedContainerColor = PureWhite,
+                                focusedBorderColor = InkPrimary,
+                                unfocusedBorderColor = HairlineBorder,
+                                focusedTextColor = InkPrimary,
+                                unfocusedTextColor = InkPrimary
                             )
                         )
                     }
@@ -202,15 +210,15 @@ fun CommunityScreen(
             }
         }
 
-        // Display Search Results if user is actively searching
+        // Search Results
         if (searchQuery.isNotBlank()) {
             item {
                 Text(
                     text = "SEARCH RESULTS (${searchResults.size})",
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextMuted,
-                    letterSpacing = 1.sp
+                    color = InkMuted,
+                    letterSpacing = 1.2.sp
                 )
             }
 
@@ -219,12 +227,12 @@ fun CommunityScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 24.dp),
+                            .padding(vertical = 28.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "No players found matching \"$searchQuery\"",
-                            color = TextMuted,
+                            color = InkMuted,
                             fontSize = 13.sp
                         )
                     }
@@ -239,7 +247,7 @@ fun CommunityScreen(
             }
         }
 
-        // Profile & XP Rank Banner (shown when not actively searching)
+        // Profile & XP Rank Banner + Leaderboard (when not searching)
         if (searchQuery.isBlank()) {
             item {
                 ProfileStatusCard(
@@ -251,14 +259,13 @@ fun CommunityScreen(
                 )
             }
 
-            // Top 3 Podium
             item {
                 Text(
                     text = "GLOBAL PODIUM",
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextMuted,
-                    letterSpacing = 1.5.sp,
+                    color = InkMuted,
+                    letterSpacing = 1.4.sp,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
@@ -267,19 +274,17 @@ fun CommunityScreen(
                 PodiumSection(leaderboard = leaderboard)
             }
 
-            // Full Leaderboard Header
             item {
                 Text(
                     text = "ALL RANKED SPOTTERS",
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextMuted,
-                    letterSpacing = 1.5.sp,
-                    modifier = Modifier.padding(top = 8.dp)
+                    color = InkMuted,
+                    letterSpacing = 1.4.sp,
+                    modifier = Modifier.padding(top = 6.dp)
                 )
             }
 
-            // Leaderboard Items
             items(leaderboard) { entry ->
                 LeaderboardRow(entry = entry)
             }
@@ -300,9 +305,9 @@ private fun PlayerResultCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("player_card_${player.id}"),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = CarbonCard),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CarbonBorder)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = PureWhite),
+        border = BorderStroke(1.dp, HairlineBorder)
     ) {
         Row(
             modifier = Modifier
@@ -319,19 +324,16 @@ private fun PlayerResultCard(
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(NitroCyan.copy(alpha = 0.35f), CarbonCardElevated)
-                            )
-                        )
-                        .border(1.dp, NitroCyan.copy(alpha = 0.5f), CircleShape),
+                        .background(CobaltSoft)
+                        .border(1.dp, CobaltAccent.copy(alpha = 0.25f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = player.username.take(1).uppercase(),
-                        color = NitroCyan,
+                        fontFamily = OutfitDisplayFont,
+                        color = CobaltAccent,
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Black
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
@@ -340,21 +342,21 @@ private fun PlayerResultCard(
                 Column {
                     Text(
                         text = player.username,
-                        color = TextPrimary,
+                        color = InkPrimary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "${player.handle} • ${player.rankTitle}",
-                        color = TextMuted,
+                        color = InkMuted,
                         fontSize = 11.sp
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Top: ${player.topCar} • ${player.totalScore} pts",
-                        color = TurboAmber,
+                        color = CobaltAccent,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -364,12 +366,12 @@ private fun PlayerResultCard(
             Button(
                 onClick = onToggleFriend,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (player.isFriend) EmeraldGreen.copy(alpha = 0.2f) else TurboAmber,
-                    contentColor = if (player.isFriend) EmeraldGreen else Color.Black
+                    containerColor = if (player.isFriend) CobaltSoft else InkPrimary,
+                    contentColor = if (player.isFriend) CobaltAccent else PureWhite
                 ),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                border = if (player.isFriend) androidx.compose.foundation.BorderStroke(1.dp, EmeraldGreen) else null,
+                shape = RoundedCornerShape(999.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                border = if (player.isFriend) BorderStroke(1.dp, CobaltAccent.copy(alpha = 0.35f)) else null,
                 modifier = Modifier.testTag("toggle_friend_${player.id}")
             ) {
                 Icon(
@@ -391,18 +393,18 @@ private fun PlayerResultCard(
 @Composable
 private fun ProfileStatusCard(
     userProfile: UserProfile,
-    authUser: com.google.firebase.auth.FirebaseUser?,
+    authUser: FirebaseUser?,
     isLoading: Boolean,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CarbonCard),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CarbonBorder)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = PorcelainSurface),
+        border = BorderStroke(1.dp, HairlineBorder)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(18.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -414,24 +416,24 @@ private fun ProfileStatusCard(
                             model = authUser.photoUrl,
                             contentDescription = "Avatar",
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(46.dp)
                                 .clip(CircleShape)
-                                .border(1.5.dp, TurboAmber, CircleShape)
+                                .border(1.5.dp, CobaltAccent, CircleShape)
                         )
                     } else {
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(46.dp)
                                 .clip(CircleShape)
-                                .background(CarbonCardElevated)
-                                .border(1.5.dp, TurboAmber, CircleShape),
+                                .background(PureWhite)
+                                .border(1.dp, HairlineBorder, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
-                                tint = TurboAmber,
-                                modifier = Modifier.size(24.dp)
+                                tint = InkPrimary,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
@@ -441,13 +443,14 @@ private fun ProfileStatusCard(
                     Column {
                         Text(
                             text = authUser?.displayName ?: userProfile.username,
-                            color = TextPrimary,
-                            fontSize = 15.sp,
+                            fontFamily = OutfitDisplayFont,
+                            color = InkPrimary,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = userProfile.rankTitle,
-                            color = TurboAmber,
+                            color = CobaltAccent,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -457,30 +460,45 @@ private fun ProfileStatusCard(
                 if (authUser == null) {
                     Button(
                         onClick = onSignIn,
-                        colors = ButtonDefaults.buttonColors(containerColor = TurboAmber, contentColor = Color.Black),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = InkPrimary,
+                            contentColor = PureWhite
+                        ),
+                        shape = RoundedCornerShape(999.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp),
                         enabled = !isLoading,
                         modifier = Modifier.testTag("google_signin_button")
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(color = Color.Black, modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                color = PureWhite,
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp
+                            )
                         } else {
-                            Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.Login,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
                             Text("Sign In", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 } else {
                     IconButton(onClick = onSignOut, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Sign Out", tint = TextMuted, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Sign Out",
+                            tint = InkMuted,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // XP Progression Bar
             val xpProgress = (userProfile.totalScore % 1000) / 1000f
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -488,14 +506,14 @@ private fun ProfileStatusCard(
             ) {
                 Text(
                     text = "LEVEL PROGRESS",
-                    color = TextMuted,
+                    color = InkMuted,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
                 )
                 Text(
                     text = "${userProfile.totalScore} TOTAL XP",
-                    color = NitroCyan,
+                    color = InkPrimary,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -507,8 +525,8 @@ private fun ProfileStatusCard(
                     .fillMaxWidth()
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp)),
-                color = TurboAmber,
-                trackColor = CarbonCardElevated
+                color = CobaltAccent,
+                trackColor = MistSurface
             )
         }
     }
@@ -525,18 +543,16 @@ private fun PodiumSection(leaderboard: List<LeaderboardEntry>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .clip(RoundedCornerShape(20.dp))
+            .background(PorcelainSurface)
+            .border(1.dp, HairlineBorder, RoundedCornerShape(20.dp))
+            .padding(top = 16.dp, start = 12.dp, end = 12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.Bottom
     ) {
-        // 2nd Place (Silver)
-        PodiumPillar(entry = second, rank = 2, color = Color(0xFFC0C0C0), height = 110.dp)
-
-        // 1st Place (Gold)
-        PodiumPillar(entry = first, rank = 1, color = GoldenTrophy, height = 135.dp)
-
-        // 3rd Place (Bronze)
-        PodiumPillar(entry = third, rank = 3, color = Color(0xFFCD7F32), height = 95.dp)
+        PodiumPillar(entry = second, rank = 2, color = SlateAccent, height = 96.dp)
+        PodiumPillar(entry = first, rank = 1, color = WarmGold, height = 122.dp)
+        PodiumPillar(entry = third, rank = 3, color = Color(0xFFB45309), height = 82.dp)
     }
 }
 
@@ -545,26 +561,26 @@ private fun PodiumPillar(
     entry: LeaderboardEntry,
     rank: Int,
     color: Color,
-    height: androidx.compose.ui.unit.Dp
+    height: Dp
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(96.dp)
     ) {
-        // Top Icon or Initials
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(38.dp)
                 .clip(CircleShape)
-                .background(color.copy(alpha = 0.2f))
-                .border(2.dp, color, CircleShape),
+                .background(PureWhite)
+                .border(1.5.dp, color, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = "$rank",
+                fontFamily = OutfitDisplayFont,
                 color = color,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Black
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
             )
         }
 
@@ -572,7 +588,7 @@ private fun PodiumPillar(
 
         Text(
             text = entry.username,
-            color = TextPrimary,
+            color = InkPrimary,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -585,27 +601,26 @@ private fun PodiumPillar(
             fontWeight = FontWeight.SemiBold
         )
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Pedestal
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(height)
-                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                 .background(
                     Brush.verticalGradient(
-                        listOf(color.copy(alpha = 0.35f), CarbonCard)
+                        listOf(color.copy(alpha = 0.14f), PureWhite)
                     )
                 )
-                .border(1.dp, color.copy(alpha = 0.4f), RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)),
+                .border(1.dp, HairlineBorder, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.EmojiEvents,
                 contentDescription = null,
                 tint = color,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(22.dp)
             )
         }
     }
@@ -617,37 +632,38 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
         modifier = Modifier
             .fillMaxWidth()
             .testTag("leaderboard_row_${entry.rank}"),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (entry.isCurrentUser) TurboAmber.copy(alpha = 0.1f) else CarbonCard
+            containerColor = if (entry.isCurrentUser) CobaltSoft else PureWhite
         ),
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             1.dp,
-            if (entry.isCurrentUser) TurboAmber else CarbonBorder
+            if (entry.isCurrentUser) CobaltAccent.copy(alpha = 0.45f) else HairlineBorder
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "#${entry.rank}",
-                    color = if (entry.rank <= 3) GoldenTrophy else TextMuted,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Black,
-                    modifier = Modifier.width(32.dp)
+                    fontFamily = OutfitDisplayFont,
+                    color = if (entry.rank <= 3) WarmGold else InkMuted,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.width(34.dp)
                 )
 
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = entry.username,
-                            color = TextPrimary,
-                            fontSize = 13.sp,
+                            color = InkPrimary,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                         if (entry.isCurrentUser) {
@@ -655,27 +671,34 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(TurboAmber)
-                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                                    .background(CobaltAccent)
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
                             ) {
-                                Text("YOU", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                Text("YOU", color = PureWhite, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                     Text(
                         text = "Top: ${entry.topCar} • ${entry.uniqueSpots} spots",
-                        color = TextMuted,
+                        color = InkMuted,
                         fontSize = 11.sp
                     )
                 }
             }
 
-            Text(
-                text = "${entry.totalScore} pts",
-                color = TurboAmber,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (entry.isCurrentUser) PureWhite else WarmGoldSoft)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "${entry.totalScore} pts",
+                    color = if (entry.isCurrentUser) CobaltAccent else WarmGold,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.example.ui.components
 
 import android.content.Context
+import android.graphics.Bitmap
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,40 +45,37 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import coil.compose.AsyncImage
-import com.example.R
 import com.example.ai.RecognitionResult
 import com.example.ai.RecognitionStatus
 import com.example.model.CarSpot
-import com.example.ui.theme.ApexCrimson
-import com.example.ui.theme.CarbonBorder
-import com.example.ui.theme.CarbonCard
-import com.example.ui.theme.CarbonCardElevated
-import com.example.ui.theme.CarbonDark
-import com.example.ui.theme.EmeraldGreen
-import com.example.ui.theme.GoldenTrophy
-import com.example.ui.theme.NitroCyan
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.TurboAmber
+import com.example.ui.theme.CobaltAccent
+import com.example.ui.theme.CobaltSoft
+import com.example.ui.theme.HairlineBorder
+import com.example.ui.theme.InkMuted
+import com.example.ui.theme.InkPrimary
+import com.example.ui.theme.InkSecondary
+import com.example.ui.theme.OutfitDisplayFont
+import com.example.ui.theme.PorcelainSurface
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.RacingRed
+import com.example.ui.theme.RacingRedSoft
+import com.example.ui.theme.WarmGold
+import com.example.ui.theme.WarmGoldSoft
 import com.example.util.SocialShareUtil
 import java.text.NumberFormat
-import android.graphics.Bitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import java.util.Locale
 
 @Composable
@@ -88,11 +87,11 @@ fun TrophyRevealDialog(
 ) {
     val context = LocalContext.current
     val car = result.carSpot
-    val accentBorderColor = when {
-        result.isSuccess && car != null -> Color(car.rarityTier.colorHex)
+    val borderAccent = when {
+        result.isSuccess && car != null -> HairlineBorder
         result.status == RecognitionStatus.NETWORK_OR_TIMEOUT ||
-            result.status == RecognitionStatus.AI_SERVICE_ERROR -> TurboAmber
-        else -> ApexCrimson
+            result.status == RecognitionStatus.AI_SERVICE_ERROR -> WarmGold.copy(alpha = 0.45f)
+        else -> RacingRed.copy(alpha = 0.4f)
     }
 
     Dialog(
@@ -103,23 +102,17 @@ fun TrophyRevealDialog(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
                 .padding(vertical = 24.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .border(
-                    width = 1.5.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(accentBorderColor, CarbonBorder)
-                    ),
-                    shape = RoundedCornerShape(24.dp)
-                )
+                .clip(RoundedCornerShape(26.dp))
+                .border(1.dp, borderAccent, RoundedCornerShape(26.dp))
                 .testTag("trophy_reveal_dialog"),
-            color = CarbonDark,
-            tonalElevation = 8.dp
+            color = PureWhite,
+            shadowElevation = 12.dp
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(20.dp),
+                    .padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (!result.isSuccess || car == null) {
@@ -154,55 +147,63 @@ private fun TrophySuccessContent(
 ) {
     val tierColor = Color(car.rarityTier.colorHex)
 
-    // Top Header: Trophy & Bonus
+    // Top Header: Trophy & Points
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = null,
-                tint = GoldenTrophy,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(WarmGoldSoft),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = WarmGold,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "TROPHY UNLOCKED",
-                color = GoldenTrophy,
+                color = WarmGold,
                 fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                letterSpacing = 1.sp
+                fontSize = 11.sp,
+                letterSpacing = 1.2.sp
             )
         }
 
-        // Points badge
+        // Points Pill
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .background(tierColor.copy(alpha = 0.2f))
-                .border(1.dp, tierColor, RoundedCornerShape(12.dp))
-                .padding(horizontal = 10.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(InkPrimary)
+                .padding(horizontal = 12.dp, vertical = 5.dp)
         ) {
             Text(
                 text = "+${car.pointsAwarded} PTS",
-                color = tierColor,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 14.sp
+                color = PureWhite,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
             )
         }
     }
 
     Spacer(modifier = Modifier.height(14.dp))
 
-    // Car Photo with Rarity Ribbon: Displays the processed, correctly-scaled Bitmap immediately!
+    // Captured / Identified Car Photo
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(200.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, CarbonBorder, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
+            .background(PorcelainSurface)
+            .border(1.dp, HairlineBorder, RoundedCornerShape(18.dp))
     ) {
         if (capturedBitmap != null) {
             Image(
@@ -218,38 +219,38 @@ private fun TrophySuccessContent(
             )
         }
 
-        // Rarity Tag Floating Pill
+        // Crisp White Rarity Floating Pill
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(10.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.Black.copy(alpha = 0.75f))
-                .border(1.dp, tierColor, RoundedCornerShape(8.dp))
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(PureWhite.copy(alpha = 0.95f))
+                .border(1.dp, HairlineBorder, RoundedCornerShape(999.dp))
+                .padding(horizontal = 10.dp, vertical = 4.dp)
         ) {
             Text(
                 text = car.rarityTier.label.uppercase(),
                 color = tierColor,
                 fontWeight = FontWeight.Bold,
-                fontSize = 11.sp
+                fontSize = 10.sp
             )
         }
 
-        // Rarity Score Circle
+        // Rarity Score Pill
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(10.dp)
-                .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.85f))
-                .border(1.dp, tierColor, CircleShape)
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(PureWhite.copy(alpha = 0.95f))
+                .border(1.dp, HairlineBorder, RoundedCornerShape(999.dp))
+                .padding(horizontal = 10.dp, vertical = 4.dp)
         ) {
             Text(
                 text = "${car.rarityScore}/100",
-                color = tierColor,
-                fontWeight = FontWeight.ExtraBold,
+                color = InkPrimary,
+                fontWeight = FontWeight.Bold,
                 fontSize = 11.sp
             )
         }
@@ -260,57 +261,59 @@ private fun TrophySuccessContent(
     // Car Title & Trim
     Text(
         text = "${car.year} ${car.make} ${car.model}",
-        color = TextPrimary,
+        fontFamily = OutfitDisplayFont,
+        color = InkPrimary,
         fontSize = 22.sp,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center
     )
     Text(
         text = car.trim,
-        color = NitroCyan,
+        color = CobaltAccent,
         fontSize = 13.sp,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center
     )
 
-    Spacer(modifier = Modifier.height(10.dp))
+    Spacer(modifier = Modifier.height(12.dp))
 
-    // Anti-Cheat Verification Badge
+    // Anti-Cheat Verification Badge (Cobalt editorial instead of neon green)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(EmeraldGreen.copy(alpha = 0.12f))
-            .border(1.dp, EmeraldGreen.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .clip(RoundedCornerShape(12.dp))
+            .background(CobaltSoft)
+            .border(1.dp, CobaltAccent.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Default.VerifiedUser,
             contentDescription = null,
-            tint = EmeraldGreen,
+            tint = CobaltAccent,
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Column {
             Text(
                 text = "ANTI-CHEAT VERIFIED SIGHTING",
-                color = EmeraldGreen,
+                color = CobaltAccent,
                 fontWeight = FontWeight.Bold,
-                fontSize = 11.sp
+                fontSize = 10.sp,
+                letterSpacing = 0.6.sp
             )
             Text(
                 text = car.antiCheatDetails,
-                color = TextSecondary,
+                color = InkSecondary,
                 fontSize = 10.sp,
-                lineHeight = 13.sp
+                lineHeight = 14.sp
             )
         }
     }
 
     Spacer(modifier = Modifier.height(14.dp))
 
-    // Performance Specs Grid (4 key metrics)
+    // Performance Specs Grid
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -319,14 +322,14 @@ private fun TrophySuccessContent(
             icon = Icons.Default.ElectricBolt,
             title = "HORSEPOWER",
             value = "${car.horsepower} HP",
-            accentColor = TurboAmber,
+            accentColor = WarmGold,
             modifier = Modifier.weight(1f)
         )
         SpecBadge(
             icon = Icons.Default.Speed,
             title = "0-60 MPH",
             value = "${car.zeroToSixtyMph}s",
-            accentColor = NitroCyan,
+            accentColor = CobaltAccent,
             modifier = Modifier.weight(1f)
         )
     }
@@ -341,7 +344,7 @@ private fun TrophySuccessContent(
             icon = Icons.Default.Speed,
             title = "TOP SPEED",
             value = "${car.topSpeedMph} MPH",
-            accentColor = ApexCrimson,
+            accentColor = RacingRed,
             modifier = Modifier.weight(1f)
         )
         val formattedPrice = NumberFormat.getCurrencyInstance(Locale.US).apply {
@@ -351,25 +354,25 @@ private fun TrophySuccessContent(
             icon = Icons.Default.AttachMoney,
             title = "EST. PRICE",
             value = formattedPrice,
-            accentColor = GoldenTrophy,
+            accentColor = InkPrimary,
             modifier = Modifier.weight(1f)
         )
     }
 
     Spacer(modifier = Modifier.height(12.dp))
 
-    // Powertrain & Description
+    // Powertrain & Description Card
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(CarbonCard)
-            .border(1.dp, CarbonBorder, RoundedCornerShape(12.dp))
-            .padding(12.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(PorcelainSurface)
+            .border(1.dp, HairlineBorder, RoundedCornerShape(14.dp))
+            .padding(14.dp)
     ) {
         Text(
             text = "POWERTRAIN & AERO",
-            color = TextMuted,
+            color = InkMuted,
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.sp
@@ -377,28 +380,29 @@ private fun TrophySuccessContent(
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = car.engineType,
-            color = TextPrimary,
+            color = InkPrimary,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
         Text(
             text = car.drivetrain,
-            color = TextSecondary,
+            color = InkSecondary,
             fontSize = 11.sp
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = car.description,
-            color = TextSecondary,
+            color = InkSecondary,
             fontSize = 11.sp,
-            lineHeight = 15.sp
+            lineHeight = 16.sp
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "💡 ${car.trivia}",
-            color = TurboAmber,
-            fontSize = 10.sp,
-            lineHeight = 14.sp
+            text = "Trivia: ${car.trivia}",
+            color = CobaltAccent,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            lineHeight = 15.sp
         )
     }
 
@@ -412,27 +416,27 @@ private fun TrophySuccessContent(
         Icon(
             imageVector = Icons.Default.LocationOn,
             contentDescription = null,
-            tint = NitroCyan,
+            tint = CobaltAccent,
             modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = car.locationName,
-            color = TextSecondary,
+            color = InkSecondary,
             fontSize = 11.sp
         )
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(14.dp))
 
     // SOCIAL MEDIA SHARING SECTION
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(CarbonCardElevated)
-            .border(1.dp, CarbonBorder, RoundedCornerShape(14.dp))
-            .padding(12.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(PorcelainSurface)
+            .border(1.dp, HairlineBorder, RoundedCornerShape(16.dp))
+            .padding(14.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -441,7 +445,7 @@ private fun TrophySuccessContent(
         ) {
             Text(
                 text = "SHARE VEHICLE FINDING",
-                color = NitroCyan,
+                color = InkMuted,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp
@@ -449,47 +453,43 @@ private fun TrophySuccessContent(
             Icon(
                 imageVector = Icons.Default.Share,
                 contentDescription = null,
-                tint = NitroCyan,
+                tint = CobaltAccent,
                 modifier = Modifier.size(14.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Pre-populated share preview text
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.Black.copy(alpha = 0.5f))
-                .padding(8.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(PureWhite)
+                .border(1.dp, HairlineBorder, RoundedCornerShape(10.dp))
+                .padding(10.dp)
         ) {
             Text(
                 text = "\"I just spotted a ${car.make} ${car.model} with CarSpotter! #CarSpotter #CarSpotting\"",
-                color = TextSecondary,
+                color = InkSecondary,
                 fontSize = 11.sp,
-                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                fontStyle = FontStyle.Italic
             )
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Social Platform Action Buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Twitter / X
             SocialPlatformButton(
                 platformName = "X / Twitter",
-                containerColor = Color(0xFF1D9BF0),
+                containerColor = Color(0xFF0F172A),
                 contentColor = Color.White,
                 onClick = { SocialShareUtil.shareToTwitter(context, car) },
                 modifier = Modifier.weight(1f),
                 testTag = "share_twitter_button"
             )
-
-            // Instagram
             SocialPlatformButton(
                 platformName = "Instagram",
                 containerColor = Color(0xFFE1306C),
@@ -498,8 +498,6 @@ private fun TrophySuccessContent(
                 modifier = Modifier.weight(1f),
                 testTag = "share_instagram_button"
             )
-
-            // Facebook
             SocialPlatformButton(
                 platformName = "Facebook",
                 containerColor = Color(0xFF1877F2),
@@ -509,13 +507,12 @@ private fun TrophySuccessContent(
                 testTag = "share_facebook_button"
             )
 
-            // System All
             Box(
                 modifier = Modifier
                     .size(38.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(CarbonCard)
-                    .border(1.dp, CarbonBorder, RoundedCornerShape(8.dp))
+                    .background(PureWhite)
+                    .border(1.dp, HairlineBorder, RoundedCornerShape(8.dp))
                     .clickable { SocialShareUtil.shareGeneric(context, car) }
                     .testTag("share_generic_button"),
                 contentAlignment = Alignment.Center
@@ -523,7 +520,7 @@ private fun TrophySuccessContent(
                 Icon(
                     imageVector = Icons.Default.Public,
                     contentDescription = "Share to other apps",
-                    tint = TextPrimary,
+                    tint = InkPrimary,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -537,17 +534,17 @@ private fun TrophySuccessContent(
         onClick = onDismiss,
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .height(50.dp)
             .testTag("collect_trophy_button"),
         colors = ButtonDefaults.buttonColors(
-            containerColor = TurboAmber,
-            contentColor = Color.Black
+            containerColor = InkPrimary,
+            contentColor = PureWhite
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(999.dp)
     ) {
-        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(20.dp))
+        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text("Add to Trophy Garage", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+        Text("Add to Trophy Garage", fontWeight = FontWeight.Bold, fontSize = 13.sp)
     }
 }
 
@@ -590,7 +587,8 @@ private fun DiagnosticOrRejectionCard(
 ) {
     val isConnectivityOrServiceIssue =
         status == RecognitionStatus.NETWORK_OR_TIMEOUT || status == RecognitionStatus.AI_SERVICE_ERROR
-    val accentColor = if (isConnectivityOrServiceIssue) TurboAmber else ApexCrimson
+    val accentColor = if (isConnectivityOrServiceIssue) WarmGold else RacingRed
+    val softColor = if (isConnectivityOrServiceIssue) WarmGoldSoft else RacingRedSoft
 
     val headerLabel = when (status) {
         RecognitionStatus.REJECTED_CHEAT -> "ANTI-CHEAT REJECTION"
@@ -606,44 +604,53 @@ private fun DiagnosticOrRejectionCard(
         else -> Icons.Default.Error
     }
 
-    Icon(
-        imageVector = headerIcon,
-        contentDescription = null,
-        tint = accentColor,
-        modifier = Modifier.size(54.dp)
-    )
-    Spacer(modifier = Modifier.height(10.dp))
+    Box(
+        modifier = Modifier
+            .size(64.dp)
+            .clip(CircleShape)
+            .background(softColor),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = headerIcon,
+            contentDescription = null,
+            tint = accentColor,
+            modifier = Modifier.size(32.dp)
+        )
+    }
+    Spacer(modifier = Modifier.height(12.dp))
     Text(
         text = headerLabel,
         color = accentColor,
-        fontWeight = FontWeight.ExtraBold,
-        fontSize = 14.sp,
-        letterSpacing = 1.sp
+        fontWeight = FontWeight.Bold,
+        fontSize = 11.sp,
+        letterSpacing = 1.2.sp
     )
     Spacer(modifier = Modifier.height(4.dp))
     Text(
         text = verdict,
-        color = TextPrimary,
-        fontSize = 18.sp,
+        fontFamily = OutfitDisplayFont,
+        color = InkPrimary,
+        fontSize = 19.sp,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center
     )
-    Spacer(modifier = Modifier.height(10.dp))
+    Spacer(modifier = Modifier.height(8.dp))
     Text(
         text = details,
-        color = TextSecondary,
+        color = InkSecondary,
         fontSize = 12.sp,
         textAlign = TextAlign.Center,
         lineHeight = 17.sp
     )
 
     if (capturedBitmap != null) {
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
         Box(
             modifier = Modifier
                 .size(130.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .border(1.5.dp, accentColor.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(14.dp))
+                .border(1.5.dp, accentColor.copy(alpha = 0.65f), RoundedCornerShape(14.dp))
         ) {
             Image(
                 bitmap = capturedBitmap.asImageBitmap(),
@@ -659,16 +666,17 @@ private fun DiagnosticOrRejectionCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(CarbonCard)
-            .border(1.dp, CarbonBorder, RoundedCornerShape(12.dp))
-            .padding(12.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(PorcelainSurface)
+            .border(1.dp, HairlineBorder, RoundedCornerShape(14.dp))
+            .padding(14.dp)
     ) {
         Text(
             text = if (isConnectivityOrServiceIssue) "DIAGNOSTIC DETAILS:" else "DETECTED SIGNALS:",
-            color = TextMuted,
+            color = InkMuted,
             fontSize = 10.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp
         )
         flags.forEach { flag ->
             Spacer(modifier = Modifier.height(4.dp))
@@ -691,14 +699,14 @@ private fun DiagnosticOrRejectionCard(
                 .height(48.dp)
                 .testTag("retry_analysis_button"),
             colors = ButtonDefaults.buttonColors(
-                containerColor = TurboAmber,
-                contentColor = Color.Black
+                containerColor = InkPrimary,
+                contentColor = PureWhite
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(999.dp)
         ) {
             Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Retry Identification", fontWeight = FontWeight.ExtraBold)
+            Text("Retry Identification", fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(10.dp))
     }
@@ -709,7 +717,8 @@ private fun DiagnosticOrRejectionCard(
             .fillMaxWidth()
             .height(48.dp)
             .testTag("dismiss_cheat_button"),
-        shape = RoundedCornerShape(12.dp)
+        border = BorderStroke(1.dp, HairlineBorder),
+        shape = RoundedCornerShape(999.dp)
     ) {
         Text(
             text = when (status) {
@@ -717,7 +726,8 @@ private fun DiagnosticOrRejectionCard(
                 RecognitionStatus.NO_VEHICLE -> "Point Camera at a Car"
                 else -> "Retake Photo"
             },
-            color = TextPrimary
+            color = InkPrimary,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
@@ -732,10 +742,10 @@ fun SpecBadge(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(CarbonCard)
-            .border(1.dp, CarbonBorder, RoundedCornerShape(12.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(PorcelainSurface)
+            .border(1.dp, HairlineBorder, RoundedCornerShape(14.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -748,20 +758,20 @@ fun SpecBadge(
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = title,
-                    color = TextMuted,
+                    color = InkMuted,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.6.sp
                 )
             }
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = value,
-                color = TextPrimary,
-                fontSize = 13.sp,
+                fontFamily = OutfitDisplayFont,
+                color = InkPrimary,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
         }
     }
 }
-

@@ -334,19 +334,35 @@ class CarSpotterViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    private var isCaptureInProgress = false
+
+    fun warmUpAi() {
+        viewModelScope.launch {
+            recognitionEngine.warmUp()
+        }
+    }
+
+    fun beginCapture() {
+        if (isCaptureInProgress || _isAnalyzing.value) return
+        isCaptureInProgress = true
+        _isAnalyzing.value = true
+        _scanningStepText.value = "Capturing optical frame..."
+    }
+
     /**
      * Executes the car snapping flow:
      * 1. Multi-step HUD scan telemetry
-     * 2. Anti-cheat sensor evaluation
-     * 3. Vehicle match & stats calculation
-     * 4. Pop-up trophy reveal
+     * 2. Autonomous AI anti-cheat & vehicle identification
+     * 3. Pop-up trophy reveal
      */
     fun snapCar(photoUri: String? = null, bitmap: android.graphics.Bitmap? = null, captureError: String? = null) {
-        if (_isAnalyzing.value) return
+        if (_isAnalyzing.value && !isCaptureInProgress) return
+        isCaptureInProgress = false
         _latestCapturedBitmap.value = bitmap
         latestCapturedPhotoUri = photoUri
         viewModelScope.launch {
             if (captureError != null && photoUri == null && bitmap == null) {
+                _isAnalyzing.value = false
                 _latestRecognitionResult.value = RecognitionResult(
                     carSpot = null,
                     antiCheatResult = com.example.model.AntiCheatResult(
@@ -384,13 +400,13 @@ class CarSpotterViewModel(application: Application) : AndroidViewModel(applicati
 
     private suspend fun runVehicleAnalysis(photoUri: String?, bitmap: android.graphics.Bitmap?) {
         _isAnalyzing.value = true
-        _scanningStepText.value = "Verifying authenticity & scanning vehicle with Gemini AI..."
+        _scanningStepText.value = "Identifying vehicle with Gemini AI..."
 
         val statusUpdater = viewModelScope.launch {
-            delay(8_000L)
-            _scanningStepText.value = "Deep-scanning make, model & trim specs..."
-            delay(14_000L)
-            _scanningStepText.value = "Still working — finalizing cloud AI verification..."
+            delay(4_500L)
+            _scanningStepText.value = "Verifying authenticity & trim specs..."
+            delay(10_000L)
+            _scanningStepText.value = "Still working — waiting on network response..."
         }
 
         val result = try {
