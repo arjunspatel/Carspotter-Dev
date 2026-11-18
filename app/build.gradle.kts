@@ -1,4 +1,5 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import java.time.Duration
 
 plugins {
   alias(libs.plugins.android.application)
@@ -16,8 +17,8 @@ android {
     applicationId = "com.aistudio.carspotter.qzvkm"
     minSdk = 24
     targetSdk = 36
-    versionCode = 19
-    versionName = "19.0"
+    versionCode = 21
+    versionName = "21.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -143,3 +144,12 @@ dependencies {
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
 }
+
+tasks.withType<Test> {
+  failFast = true
+  timeout.set(Duration.ofMinutes(2))
+  testLogging {
+    events("passed", "failed", "skipped")
+  }
+}
+

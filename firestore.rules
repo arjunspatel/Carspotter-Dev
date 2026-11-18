@@ -1,11 +1,253 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /car_spots/{spotId} {
-      allow read, write: if true;
+
+    // Global Deny-All Catch-All
+    match /{document=**} {
+      allow read, write: if false;
     }
-    match /users/{userId} {
-      allow read, write: if true;
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && !id.matches('.*[/\\.].*');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidRecentSpot(item) {
+      return item is map
+        && item.keys().hasAll([
+          'id', 'carName', 'rarityTier', 'pointsEarned', 'horsepower',
+          'topSpeedMph', 'locationName', 'timestamp', 'isVerified'
+        ])
+        && item.keys().hasOnly([
+          'id', 'carName', 'rarityTier', 'pointsEarned', 'horsepower',
+          'topSpeedMph', 'locationName', 'timestamp', 'isVerified'
+        ])
+        && item.id is string && item.id.size() >= 1 && item.id.size() <= 128
+        && item.carName is string && item.carName.size() >= 1 && item.carName.size() <= 120
+        && item.rarityTier in ['COMMON', 'UNCOMMON', 'RARE', 'EXOTIC', 'LEGENDARY']
+        && item.pointsEarned is int && item.pointsEarned >= 0 && item.pointsEarned <= 100000
+        && item.horsepower is int && item.horsepower >= 0 && item.horsepower <= 10000
+        && item.topSpeedMph is int && item.topSpeedMph >= 0 && item.topSpeedMph <= 1000
+        && item.locationName is string && item.locationName.size() <= 200
+        && item.timestamp is int && item.timestamp >= 0
+        && item.isVerified is bool;
+    }
+
+    function isValidSpotterData(expectedUserId) {
+      let data = incoming();
+      return data.keys().hasAll([
+          'userId', 'username', 'handle', 'totalScore', 'uniqueSpotsCount',
+          'totalSpotsCount', 'rankTitle', 'topCar', 'topHorsepower',
+          'topSpeedMph', 'isPublicProfile', 'recentSpots', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'username', 'handle', 'avatarUrl', 'totalScore',
+          'uniqueSpotsCount', 'totalSpotsCount', 'rankTitle', 'topCar',
+          'topHorsepower', 'topSpeedMph', 'isPublicProfile', 'recentSpots',
+          'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && data.userId == expectedUserId
+        && data.username is string && data.username.size() >= 1 && data.username.size() <= 60
+        && data.handle is string && data.handle.size() >= 1 && data.handle.size() <= 60
+        && (!('avatarUrl' in data) || data.avatarUrl == null || (data.avatarUrl is string && data.avatarUrl.size() <= 512))
+        && data.totalScore is int && data.totalScore >= 0 && data.totalScore <= 100000000
+        && data.uniqueSpotsCount is int && data.uniqueSpotsCount >= 0 && data.uniqueSpotsCount <= 100000
+        && data.totalSpotsCount is int && data.totalSpotsCount >= 0 && data.totalSpotsCount <= 100000
+        && data.rankTitle is string && data.rankTitle.size() >= 1 && data.rankTitle.size() <= 80
+        && data.topCar is string && data.topCar.size() <= 140
+        && data.topHorsepower is int && data.topHorsepower >= 0 && data.topHorsepower <= 10000
+        && data.topSpeedMph is int && data.topSpeedMph >= 0 && data.topSpeedMph <= 1000
+        && data.isPublicProfile is bool && data.isPublicProfile == true
+        && data.recentSpots is list && data.recentSpots.size() <= 5
+        && (data.recentSpots.size() == 0 || isValidRecentSpot(data.recentSpots[0]))
+        && (data.recentSpots.size() < 2 || isValidRecentSpot(data.recentSpots[1]))
+        && (data.recentSpots.size() < 3 || isValidRecentSpot(data.recentSpots[2]))
+        && (data.recentSpots.size() < 4 || isValidRecentSpot(data.recentSpots[3]))
+        && (data.recentSpots.size() < 5 || isValidRecentSpot(data.recentSpots[4]))
+        && data.createdAt is timestamp && data.createdAt <= request.time
+        && data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidCarSpotData(expectedUserId) {
+      let data = incoming();
+      return data.keys().hasAll([
+          'userId', 'make', 'model', 'year', 'trim', 'rarityTier', 'rarityScore',
+          'pointsAwarded', 'horsepower', 'zeroToSixtyMph', 'topSpeedMph',
+          'estimatedPriceUsd', 'engineType', 'drivetrain', 'description',
+          'trivia', 'locationName', 'latitude', 'longitude', 'timestamp',
+          'isAuthentic', 'antiCheatConfidence', 'antiCheatDetails',
+          'isFirstDiscovery', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'make', 'model', 'year', 'trim', 'rarityTier', 'rarityScore',
+          'pointsAwarded', 'horsepower', 'zeroToSixtyMph', 'topSpeedMph',
+          'estimatedPriceUsd', 'engineType', 'drivetrain', 'description',
+          'trivia', 'photoUri', 'locationName', 'latitude', 'longitude',
+          'timestamp', 'isAuthentic', 'antiCheatConfidence', 'antiCheatDetails',
+          'isFirstDiscovery', 'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && data.userId == expectedUserId
+        && data.make is string && data.make.size() >= 1 && data.make.size() <= 80
+        && data.model is string && data.model.size() >= 1 && data.model.size() <= 100
+        && data.year is int && data.year >= 1885 && data.year <= 2100
+        && data.trim is string && data.trim.size() <= 120
+        && data.rarityTier in ['COMMON', 'UNCOMMON', 'RARE', 'EXOTIC', 'LEGENDARY']
+        && data.rarityScore is int && data.rarityScore >= 1 && data.rarityScore <= 100
+        && data.pointsAwarded is int && data.pointsAwarded >= 0 && data.pointsAwarded <= 100000
+        && data.horsepower is int && data.horsepower >= 0 && data.horsepower <= 10000
+        && data.zeroToSixtyMph is number && data.zeroToSixtyMph >= 0 && data.zeroToSixtyMph <= 100
+        && data.topSpeedMph is int && data.topSpeedMph >= 0 && data.topSpeedMph <= 1000
+        && data.estimatedPriceUsd is int && data.estimatedPriceUsd >= 0
+        && data.engineType is string && data.engineType.size() <= 160
+        && data.drivetrain is string && data.drivetrain.size() <= 160
+        && data.description is string && data.description.size() <= 1500
+        && data.trivia is string && data.trivia.size() <= 1500
+        && (!('photoUri' in data) || data.photoUri == null || (data.photoUri is string && data.photoUri.size() <= 512))
+        && data.locationName is string && data.locationName.size() <= 200
+        && data.latitude is number && data.latitude >= -90 && data.latitude <= 90
+        && data.longitude is number && data.longitude >= -180 && data.longitude <= 180
+        && data.timestamp is int && data.timestamp >= 0
+        && data.isAuthentic is bool
+        && data.antiCheatConfidence is number && data.antiCheatConfidence >= 0 && data.antiCheatConfidence <= 1.0
+        && data.antiCheatDetails is string && data.antiCheatDetails.size() <= 1500
+        && data.isFirstDiscovery is bool
+        && data.createdAt is timestamp && data.createdAt <= request.time
+        && data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidPublicSightingData(expectedUserId) {
+      let data = incoming();
+      return data.keys().hasAll([
+          'userId', 'spotterName', 'spotterHandle', 'make', 'model', 'year',
+          'trim', 'rarityTier', 'rarityScore', 'pointsAwarded', 'horsepower',
+          'zeroToSixtyMph', 'topSpeedMph', 'estimatedPriceUsd', 'engineType',
+          'drivetrain', 'description', 'trivia', 'locationName', 'latitude',
+          'longitude', 'timestamp', 'isAuthentic', 'antiCheatConfidence',
+          'antiCheatDetails', 'isPublic', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'spotterName', 'spotterHandle', 'spotterAvatarUrl', 'make',
+          'model', 'year', 'trim', 'rarityTier', 'rarityScore', 'pointsAwarded',
+          'horsepower', 'zeroToSixtyMph', 'topSpeedMph', 'estimatedPriceUsd',
+          'engineType', 'drivetrain', 'description', 'trivia', 'locationName',
+          'latitude', 'longitude', 'timestamp', 'isAuthentic',
+          'antiCheatConfidence', 'antiCheatDetails', 'isPublic', 'createdAt',
+          'updatedAt'
+        ])
+        && data.userId is string && data.userId == expectedUserId
+        && data.spotterName is string && data.spotterName.size() >= 1 && data.spotterName.size() <= 60
+        && data.spotterHandle is string && data.spotterHandle.size() >= 1 && data.spotterHandle.size() <= 60
+        && (!('spotterAvatarUrl' in data) || data.spotterAvatarUrl == null || (data.spotterAvatarUrl is string && data.spotterAvatarUrl.size() <= 512))
+        && data.make is string && data.make.size() >= 1 && data.make.size() <= 80
+        && data.model is string && data.model.size() >= 1 && data.model.size() <= 100
+        && data.year is int && data.year >= 1885 && data.year <= 2100
+        && data.trim is string && data.trim.size() <= 120
+        && data.rarityTier in ['COMMON', 'UNCOMMON', 'RARE', 'EXOTIC', 'LEGENDARY']
+        && data.rarityScore is int && data.rarityScore >= 1 && data.rarityScore <= 100
+        && data.pointsAwarded is int && data.pointsAwarded >= 0 && data.pointsAwarded <= 100000
+        && data.horsepower is int && data.horsepower >= 0 && data.horsepower <= 10000
+        && data.zeroToSixtyMph is number && data.zeroToSixtyMph >= 0 && data.zeroToSixtyMph <= 100
+        && data.topSpeedMph is int && data.topSpeedMph >= 0 && data.topSpeedMph <= 1000
+        && data.estimatedPriceUsd is int && data.estimatedPriceUsd >= 0
+        && data.engineType is string && data.engineType.size() <= 160
+        && data.drivetrain is string && data.drivetrain.size() <= 160
+        && data.description is string && data.description.size() <= 1500
+        && data.trivia is string && data.trivia.size() <= 1500
+        && data.locationName is string && data.locationName.size() <= 200
+        && data.latitude is number && data.latitude >= -90 && data.latitude <= 90
+        && data.longitude is number && data.longitude >= -180 && data.longitude <= 180
+        && data.timestamp is int && data.timestamp >= 0
+        && data.isAuthentic is bool
+        && data.antiCheatConfidence is number && data.antiCheatConfidence >= 0 && data.antiCheatConfidence <= 1.0
+        && data.antiCheatDetails is string && data.antiCheatDetails.size() <= 1500
+        && data.isPublic is bool && data.isPublic == true
+        && data.createdAt is timestamp && data.createdAt <= request.time
+        && data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /spotters/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && resource.data.isPublicProfile == true;
+      allow create: if isOwner(userId) && isValidId(userId) && isValidSpotterData(userId);
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidSpotterData(userId)
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'username', 'handle', 'avatarUrl', 'totalScore', 'uniqueSpotsCount',
+          'totalSpotsCount', 'rankTitle', 'topCar', 'topHorsepower',
+          'topSpeedMph', 'isPublicProfile', 'recentSpots', 'updatedAt'
+        ])
+        && incoming().createdAt == existing().createdAt
+        && incoming().userId == existing().userId;
+      allow delete: if isOwner(userId);
+    }
+
+    match /public_sightings/{sightingId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow create: if isSignedIn() && isValidId(sightingId) && isValidPublicSightingData(request.auth.uid);
+      allow update: if isOwner(existing().userId)
+        && isValidId(sightingId)
+        && isValidPublicSightingData(existing().userId)
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'spotterName', 'spotterHandle', 'spotterAvatarUrl', 'make', 'model',
+          'year', 'trim', 'rarityTier', 'rarityScore', 'pointsAwarded',
+          'horsepower', 'zeroToSixtyMph', 'topSpeedMph', 'estimatedPriceUsd',
+          'engineType', 'drivetrain', 'description', 'trivia', 'locationName',
+          'latitude', 'longitude', 'timestamp', 'isAuthentic',
+          'antiCheatConfidence', 'antiCheatDetails', 'isPublic', 'updatedAt'
+        ])
+        && incoming().createdAt == existing().createdAt
+        && incoming().userId == existing().userId;
+      allow delete: if isOwner(existing().userId);
+    }
+
+    match /users/{userId}/car_spots/{spotId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(spotId) && isValidCarSpotData(userId);
+      allow update: if isOwner(userId)
+        && isValidId(spotId)
+        && isValidCarSpotData(userId)
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'make', 'model', 'year', 'trim', 'rarityTier', 'rarityScore',
+          'pointsAwarded', 'horsepower', 'zeroToSixtyMph', 'topSpeedMph',
+          'estimatedPriceUsd', 'engineType', 'drivetrain', 'description',
+          'trivia', 'photoUri', 'locationName', 'latitude', 'longitude',
+          'timestamp', 'isAuthentic', 'antiCheatConfidence', 'antiCheatDetails',
+          'isFirstDiscovery', 'updatedAt'
+        ])
+        && incoming().createdAt == existing().createdAt
+        && incoming().userId == existing().userId;
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/friends/{friendId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && isValidId(friendId)
+        && friendId != userId
+        && incoming().keys().hasAll(['userId', 'friendId', 'createdAt'])
+        && incoming().keys().hasOnly(['userId', 'friendId', 'createdAt'])
+        && incoming().userId is string && incoming().userId == userId
+        && incoming().friendId is string && incoming().friendId == friendId
+        && incoming().createdAt is timestamp && incoming().createdAt <= request.time;
+      allow update: if false;
+      allow delete: if isOwner(userId);
     }
   }
 }

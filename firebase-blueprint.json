@@ -1,0 +1,202 @@
+{
+  "entities": {
+    "SpotterProfile": {
+      "title": "SpotterProfile",
+      "description": "Public non-PII community profile and top stats for an authenticated CarSpotter user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the user" },
+        "username": { "type": "string", "description": "Display name shown in leaderboards and feeds" },
+        "handle": { "type": "string", "description": "Public spotter handle (without email domain)" },
+        "avatarUrl": { "type": "string", "description": "Optional profile avatar URL" },
+        "totalScore": { "type": "integer", "description": "Sum of points awarded across the user's garage" },
+        "uniqueSpotsCount": { "type": "integer", "description": "Number of distinct make/model combinations spotted" },
+        "totalSpotsCount": { "type": "integer", "description": "Total number of cars in the user's garage" },
+        "rankTitle": { "type": "string", "description": "Computed spotter tier title" },
+        "topCar": { "type": "string", "description": "Display name of highest horsepower/point car" },
+        "topHorsepower": { "type": "integer", "description": "Highest horsepower car in the user's garage" },
+        "topSpeedMph": { "type": "integer", "description": "Highest top speed MPH car in the user's garage" },
+        "isPublicProfile": { "type": "boolean", "description": "True when listed in public community discovery" },
+        "recentSpots": {
+          "type": "array",
+          "description": "Up to 5 recent spotted vehicle summaries for friends feed"
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "username",
+        "handle",
+        "totalScore",
+        "uniqueSpotsCount",
+        "totalSpotsCount",
+        "rankTitle",
+        "topCar",
+        "topHorsepower",
+        "topSpeedMph",
+        "isPublicProfile",
+        "recentSpots",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CarSpot": {
+      "title": "CarSpot",
+      "description": "An AI-verified vehicle sighting saved in a specific user's cloud garage",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "make": { "type": "string" },
+        "model": { "type": "string" },
+        "year": { "type": "integer" },
+        "trim": { "type": "string" },
+        "rarityTier": { "type": "string" },
+        "rarityScore": { "type": "integer" },
+        "pointsAwarded": { "type": "integer" },
+        "horsepower": { "type": "integer" },
+        "zeroToSixtyMph": { "type": "number" },
+        "topSpeedMph": { "type": "integer" },
+        "estimatedPriceUsd": { "type": "integer" },
+        "engineType": { "type": "string" },
+        "drivetrain": { "type": "string" },
+        "description": { "type": "string" },
+        "trivia": { "type": "string" },
+        "photoUri": { "type": "string" },
+        "locationName": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "timestamp": { "type": "integer" },
+        "isAuthentic": { "type": "boolean" },
+        "antiCheatConfidence": { "type": "number" },
+        "antiCheatDetails": { "type": "string" },
+        "isFirstDiscovery": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "make",
+        "model",
+        "year",
+        "trim",
+        "rarityTier",
+        "rarityScore",
+        "pointsAwarded",
+        "horsepower",
+        "zeroToSixtyMph",
+        "topSpeedMph",
+        "estimatedPriceUsd",
+        "engineType",
+        "drivetrain",
+        "description",
+        "trivia",
+        "locationName",
+        "latitude",
+        "longitude",
+        "timestamp",
+        "isAuthentic",
+        "antiCheatConfidence",
+        "antiCheatDetails",
+        "isFirstDiscovery",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PublicSighting": {
+      "title": "PublicSighting",
+      "description": "Public non-PII vehicle radar sighting visible to authenticated spotters on the Radar Map",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "spotterName": { "type": "string" },
+        "spotterHandle": { "type": "string" },
+        "spotterAvatarUrl": { "type": "string" },
+        "make": { "type": "string" },
+        "model": { "type": "string" },
+        "year": { "type": "integer" },
+        "trim": { "type": "string" },
+        "rarityTier": { "type": "string" },
+        "rarityScore": { "type": "integer" },
+        "pointsAwarded": { "type": "integer" },
+        "horsepower": { "type": "integer" },
+        "zeroToSixtyMph": { "type": "number" },
+        "topSpeedMph": { "type": "integer" },
+        "estimatedPriceUsd": { "type": "integer" },
+        "engineType": { "type": "string" },
+        "drivetrain": { "type": "string" },
+        "description": { "type": "string" },
+        "trivia": { "type": "string" },
+        "locationName": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "timestamp": { "type": "integer" },
+        "isAuthentic": { "type": "boolean" },
+        "antiCheatConfidence": { "type": "number" },
+        "antiCheatDetails": { "type": "string" },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "spotterName",
+        "spotterHandle",
+        "make",
+        "model",
+        "year",
+        "trim",
+        "rarityTier",
+        "rarityScore",
+        "pointsAwarded",
+        "horsepower",
+        "zeroToSixtyMph",
+        "topSpeedMph",
+        "estimatedPriceUsd",
+        "engineType",
+        "drivetrain",
+        "description",
+        "trivia",
+        "locationName",
+        "latitude",
+        "longitude",
+        "timestamp",
+        "isAuthentic",
+        "antiCheatConfidence",
+        "antiCheatDetails",
+        "isPublic",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FriendLink": {
+      "title": "FriendLink",
+      "description": "A user's added friend reference",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "friendId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "friendId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/spotters/{userId}": {
+      "schema": { "$ref": "#/entities/SpotterProfile" },
+      "description": "Public non-PII profile directory for leaderboard, search, and friend feeds"
+    },
+    "/public_sightings/{sightingId}": {
+      "schema": { "$ref": "#/entities/PublicSighting" },
+      "description": "Public non-PII recent sightings feed for the multi-account Radar Map"
+    },
+    "/users/{userId}/car_spots/{spotId}": {
+      "schema": { "$ref": "#/entities/CarSpot" },
+      "description": "User-private synced garage spots"
+    },
+    "/users/{userId}/friends/{friendId}": {
+      "schema": { "$ref": "#/entities/FriendLink" },
+      "description": "User-private list of friend UIDs"
+    }
+  }
+}

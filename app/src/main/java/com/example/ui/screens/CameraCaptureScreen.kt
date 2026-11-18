@@ -128,18 +128,32 @@ fun CameraCaptureScreen(
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        hasCameraPermission = granted
-        if (!granted) {
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { perms ->
+        val camGranted = perms[Manifest.permission.CAMERA]
+            ?: (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+        hasCameraPermission = camGranted
+        val locGranted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (locGranted) {
+            viewModel.refreshUserLocation()
+        }
+        if (!camGranted) {
             Toast.makeText(context, "Camera permission needed for live vehicle capture", Toast.LENGTH_SHORT).show()
         }
     }
 
     LaunchedEffect(Unit) {
         viewModel.warmUpAi()
+        viewModel.refreshUserLocation()
         if (!hasCameraPermission) {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.CAMERA,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
         }
     }
 
@@ -263,7 +277,15 @@ fun CameraCaptureScreen(
                     )
                     Spacer(modifier = Modifier.height(18.dp))
                     Button(
-                        onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+                        onClick = {
+                            permissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.CAMERA,
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = InkPrimary, contentColor = PureWhite),
                         shape = RoundedCornerShape(12.dp)
                     ) {

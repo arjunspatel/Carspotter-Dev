@@ -1,13 +1,14 @@
 package com.example
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,12 +28,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.LocationOn
@@ -43,27 +46,50 @@ import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.ai.CarRecognitionEngine
+import com.example.auth.AuthService
+import com.example.data.CarSpotterDatabase
+import com.example.data.FirestoreCollectionService
 import com.example.ui.CarSpotterViewModel
 import com.example.ui.TabDestination
 import com.example.ui.components.CarDetailSheet
@@ -75,6 +101,7 @@ import com.example.ui.screens.FriendsScreen
 import com.example.ui.screens.MapSpotScreen
 import com.example.ui.theme.CarSpotterTheme
 import com.example.ui.theme.CobaltAccent
+import com.example.ui.theme.CobaltSoft
 import com.example.ui.theme.HairlineBorder
 import com.example.ui.theme.InkMuted
 import com.example.ui.theme.InkPrimary
@@ -84,11 +111,13 @@ import com.example.ui.theme.OutfitDisplayFont
 import com.example.ui.theme.PorcelainSurface
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.RacingRed
+import com.example.ui.theme.RacingRedSoft
 import com.example.util.configureAppCheck
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-
-    private val viewModel: CarSpotterViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,13 +125,16 @@ class MainActivity : ComponentActivity() {
         // STEP 1: Mandatory App Check configuration with launch intent before UI/Firebase
         configureAppCheck(this, intent)
 
+        // Purge any legacy un-scoped Room database so garages stay strictly per Google account
+        CarSpotterDatabase.clearLegacyLocalGarage(this)
+
         // Initialize Firebase Firestore with provisioned database ID
         try {
             val dbId = getString(R.string.firestore_database_id)
-            com.google.firebase.firestore.FirebaseFirestore.getInstance(dbId)
-            android.util.Log.d("MainActivity", "Firebase Firestore initialized with database: $dbId")
+            FirebaseFirestore.getInstance(dbId)
+            Log.d("MainActivity", "Firebase Firestore initialized with database: $dbId")
         } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Firestore initialization: ${e.message}")
+            Log.e("MainActivity", "Firestore initialization: ${e.message}")
         }
 
         enableEdgeToEdge(
@@ -118,21 +150,274 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             CarSpotterTheme {
-                CarSpotterApp(viewModel = viewModel)
+                CarSpotterRoot()
             }
         }
     }
 }
 
 @Composable
-fun CarSpotterApp(viewModel: CarSpotterViewModel) {
+fun CarSpotterRoot() {
+    val context = LocalContext.current
+    val activityScope = rememberCoroutineScope()
+    val authService = remember(context) { AuthService(context) }
+
+    val authUser by authService.authStateFlow.collectAsStateWithLifecycle(initialValue = authService.currentUser)
+    var isCheckingSession by remember { mutableStateOf(authService.currentUser == null) }
+    var isSigningIn by remember { mutableStateOf(false) }
+    var authError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        if (authService.currentUser == null) {
+            authService.attemptAutoSignIn()
+        }
+        isCheckingSession = false
+    }
+
+    val currentUser = authUser
+    if (currentUser == null) {
+        AuthGateScreen(
+            isCheckingSession = isCheckingSession,
+            isSigningIn = isSigningIn,
+            errorMessage = authError,
+            onSignInClick = {
+                activityScope.launch {
+                    isSigningIn = true
+                    authError = null
+                    val result = authService.signInWithGoogle()
+                    isSigningIn = false
+                    if (result.isFailure) {
+                        val ex = result.exceptionOrNull()
+                        if (ex !is GetCredentialCancellationException) {
+                            authError = ex?.localizedMessage ?: "Google Sign-In failed"
+                        }
+                    }
+                }
+            }
+        )
+    } else {
+        key(currentUser.uid) {
+            val appContext = context.applicationContext
+            val viewModel: CarSpotterViewModel = viewModel(
+                key = "car_spotter_vm_${currentUser.uid}",
+                factory = object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        return CarSpotterViewModel(
+                            appContext = appContext,
+                            recognitionEngine = CarRecognitionEngine(appContext),
+                            firestoreService = FirestoreCollectionService(appContext),
+                            currentUserId = currentUser.uid,
+                            userDisplayName = currentUser.displayName,
+                            userAvatarUrl = currentUser.photoUrl?.toString()
+                        ) as T
+                    }
+                }
+            )
+
+            CarSpotterApp(
+                viewModel = viewModel,
+                authUser = currentUser,
+                onSignOut = {
+                    activityScope.launch {
+                        authService.signOut()
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun AuthGateScreen(
+    isCheckingSession: Boolean,
+    isSigningIn: Boolean,
+    errorMessage: String?,
+    onSignInClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PureWhite)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .navigationBarsPadding()
+            .padding(24.dp)
+            .testTag("auth_gate_screen"),
+        contentAlignment = Alignment.Center
+    ) {
+        // Subtle editorial geometric backdrop
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val step = 48.dp.toPx()
+            var x = step
+            while (x < size.width) {
+                drawLine(
+                    color = HairlineBorder.copy(alpha = 0.45f),
+                    start = Offset(x, 0f),
+                    end = Offset(x, size.height),
+                    strokeWidth = 1f
+                )
+                x += step
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 420.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(PorcelainSurface)
+                    .border(1.dp, HairlineBorder, RoundedCornerShape(26.dp))
+                    .padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.carspotter_cartoon_car_logo_1794609260359),
+                    contentDescription = "CarSpotter Logo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(18.dp))
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(CobaltSoft)
+                    .border(1.dp, CobaltAccent.copy(alpha = 0.2f), RoundedCornerShape(999.dp))
+                    .padding(horizontal = 12.dp, vertical = 5.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CloudSync,
+                    contentDescription = null,
+                    tint = CobaltAccent,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "ACCOUNT-SYNCED GARAGE",
+                    color = CobaltAccent,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = "CarSpotter.",
+                fontFamily = OutfitDisplayFont,
+                color = InkPrimary,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-1.0).sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Sign in with your Google account to save spotted cars to your personal cloud garage, add real friends, and climb the live leaderboard.",
+                color = InkSecondary,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            if (!errorMessage.isNullOrBlank()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = RacingRedSoft),
+                    border = BorderStroke(1.dp, RacingRed.copy(alpha = 0.25f))
+                ) {
+                    Text(
+                        text = errorMessage,
+                        color = RacingRed,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(14.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Button(
+                onClick = onSignInClick,
+                enabled = !isCheckingSession && !isSigningIn,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = InkPrimary,
+                    contentColor = PureWhite
+                ),
+                shape = RoundedCornerShape(999.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .testTag("google_signin_button")
+            ) {
+                if (isCheckingSession || isSigningIn) {
+                    CircularProgressIndicator(
+                        color = PureWhite,
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = if (isCheckingSession) "Checking Session..." else "Signing In...",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Login,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Continue with Google",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CarSpotterApp(
+    viewModel: CarSpotterViewModel,
+    authUser: FirebaseUser,
+    onSignOut: () -> Unit
+) {
     val currentTab by viewModel.currentTab.collectAsState()
     val showTrophyDialog by viewModel.showTrophyRevealDialog.collectAsState()
     val latestResult by viewModel.latestRecognitionResult.collectAsState()
-    val inspectedCar by viewModel.inspectedCar.collectAsState()
-
-    val authUser by viewModel.authUser.collectAsState()
+    val inspectedSighting by viewModel.inspectedSighting.collectAsState()
     val latestCapturedBitmap by viewModel.latestCapturedBitmap.collectAsState()
+    val syncError by viewModel.syncError.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(syncError) {
+        val msg = syncError
+        if (!msg.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearSyncError()
+        }
+    }
 
     // Handle back button: return to SPOT tab if on another screen
     BackHandler(enabled = currentTab != TabDestination.SPOT) {
@@ -144,11 +429,11 @@ fun CarSpotterApp(viewModel: CarSpotterViewModel) {
             .fillMaxSize()
             .background(PureWhite)
             .windowInsetsPadding(WindowInsets.statusBars),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             if (currentTab != TabDestination.SPOT) {
                 CarSpotterTopBar(
                     authUser = authUser,
-                    onSignInClick = { viewModel.signInWithGoogle() },
                     onProfileClick = { viewModel.setTab(TabDestination.COMMUNITY) }
                 )
             }
@@ -172,12 +457,15 @@ fun CarSpotterApp(viewModel: CarSpotterViewModel) {
                 TabDestination.MAP -> MapSpotScreen(viewModel = viewModel)
                 TabDestination.SPOT -> CameraCaptureScreen(viewModel = viewModel)
                 TabDestination.FRIENDS -> FriendsScreen(viewModel = viewModel)
-                TabDestination.COMMUNITY -> CommunityScreen(viewModel = viewModel)
+                TabDestination.COMMUNITY -> CommunityScreen(
+                    viewModel = viewModel,
+                    authUser = authUser,
+                    onSignOut = onSignOut
+                )
             }
         }
     }
 
-    // Trophy / Diagnostic Dialog
     if (showTrophyDialog && latestResult != null) {
         TrophyRevealDialog(
             result = latestResult!!,
@@ -187,12 +475,18 @@ fun CarSpotterApp(viewModel: CarSpotterViewModel) {
         )
     }
 
-    // Car Full Specs Inspection Sheet
-    if (inspectedCar != null) {
+    val activeSighting = inspectedSighting
+    if (activeSighting != null) {
         CarDetailSheet(
-            car = inspectedCar!!,
-            onDismiss = { viewModel.inspectCar(null) },
-            onDelete = { car -> viewModel.deleteCar(car) }
+            car = activeSighting.carSpot,
+            onDismiss = { viewModel.inspectSighting(null) },
+            onDelete = { car -> viewModel.deleteCar(car) },
+            canDelete = activeSighting.isOwnSpot,
+            spottedByLabel = if (activeSighting.isOwnSpot) {
+                null
+            } else {
+                "Spotted by ${activeSighting.spotterName} (${activeSighting.spotterHandle})"
+            }
         )
     }
 }
@@ -211,7 +505,6 @@ fun CarSpotterBottomBar(
             containerColor = PureWhite,
             tonalElevation = 0.dp
         ) {
-            // Tab 1: Collection / Garage
             NavigationBarItem(
                 selected = currentTab == TabDestination.COLLECTION,
                 onClick = { onTabSelected(TabDestination.COLLECTION) },
@@ -239,7 +532,6 @@ fun CarSpotterBottomBar(
                 modifier = Modifier.testTag("nav_item_garage")
             )
 
-            // Tab 2: Spot Map / Radar
             NavigationBarItem(
                 selected = currentTab == TabDestination.MAP,
                 onClick = { onTabSelected(TabDestination.MAP) },
@@ -267,7 +559,6 @@ fun CarSpotterBottomBar(
                 modifier = Modifier.testTag("nav_item_map")
             )
 
-            // Tab 3: Spot / Camera - Clean Editorial Center Action
             NavigationBarItem(
                 selected = currentTab == TabDestination.SPOT,
                 onClick = { onTabSelected(TabDestination.SPOT) },
@@ -310,7 +601,6 @@ fun CarSpotterBottomBar(
                 modifier = Modifier.testTag("nav_item_spot")
             )
 
-            // Tab 4: Friends Feed & Battles
             NavigationBarItem(
                 selected = currentTab == TabDestination.FRIENDS,
                 onClick = { onTabSelected(TabDestination.FRIENDS) },
@@ -338,7 +628,6 @@ fun CarSpotterBottomBar(
                 modifier = Modifier.testTag("nav_item_friends")
             )
 
-            // Tab 5: Community & Global Leaderboards
             NavigationBarItem(
                 selected = currentTab == TabDestination.COMMUNITY,
                 onClick = { onTabSelected(TabDestination.COMMUNITY) },
@@ -371,8 +660,7 @@ fun CarSpotterBottomBar(
 
 @Composable
 fun CarSpotterTopBar(
-    authUser: com.google.firebase.auth.FirebaseUser?,
-    onSignInClick: () -> Unit,
+    authUser: FirebaseUser,
     onProfileClick: () -> Unit
 ) {
     Column(modifier = Modifier.background(PureWhite)) {
@@ -384,7 +672,6 @@ fun CarSpotterTopBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Editorial Website Brand Header with Cartoony Classic Car Logo
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable(onClick = onProfileClick)
@@ -433,72 +720,47 @@ fun CarSpotterTopBar(
                 }
             }
 
-            // Auth Identity Pill
-            if (authUser == null) {
-                Button(
-                    onClick = onSignInClick,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = InkPrimary,
-                        contentColor = PureWhite
-                    ),
-                    shape = RoundedCornerShape(999.dp),
-                    modifier = Modifier
-                        .height(36.dp)
-                        .testTag("topbar_google_signin_button"),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Login,
-                        contentDescription = null,
-                        tint = PureWhite,
-                        modifier = Modifier.size(14.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(PorcelainSurface)
+                    .border(1.dp, HairlineBorder, RoundedCornerShape(999.dp))
+                    .clickable(onClick = onProfileClick)
+                    .padding(start = 5.dp, end = 12.dp, top = 5.dp, bottom = 5.dp)
+                    .testTag("topbar_user_profile")
+            ) {
+                if (authUser.photoUrl != null) {
+                    AsyncImage(
+                        model = authUser.photoUrl,
+                        contentDescription = "Avatar",
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Sign In", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PureWhite)
-                }
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(PorcelainSurface)
-                        .border(1.dp, HairlineBorder, RoundedCornerShape(999.dp))
-                        .clickable(onClick = onProfileClick)
-                        .padding(start = 5.dp, end = 12.dp, top = 5.dp, bottom = 5.dp)
-                        .testTag("topbar_user_profile")
-                ) {
-                    if (authUser.photoUrl != null) {
-                        AsyncImage(
-                            model = authUser.photoUrl,
-                            contentDescription = "Avatar",
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(CobaltAccent),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = authUser.displayName?.take(1)?.uppercase() ?: "S",
+                            color = PureWhite,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(CobaltAccent),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = authUser.displayName?.take(1) ?: "U",
-                                color = PureWhite,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = authUser.displayName?.split(" ")?.first() ?: "Spotter",
-                        color = InkPrimary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
                 }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = authUser.displayName?.split(" ")?.firstOrNull()?.takeIf { it.isNotBlank() } ?: "Spotter",
+                    color = InkPrimary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
         HorizontalDivider(thickness = 1.dp, color = HairlineBorder)

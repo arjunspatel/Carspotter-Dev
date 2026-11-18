@@ -4,5 +4,18 @@
       "database": "ai-studio-android-carspott-ef104925-bca7-41de-af4a-9747713cf5fa",
       "rules": "firestore.rules"
     }
-  ]
+  ],
+  "emulators": {
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8085
+    },
+    "auth": {
+      "host": "127.0.0.1",
+      "port": 9099
+    },
+    "ui": {
+      "enabled": false
+    }
+  }
 }

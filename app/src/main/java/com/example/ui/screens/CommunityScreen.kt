@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -33,10 +32,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -72,6 +71,7 @@ import com.example.ui.theme.MistSurface
 import com.example.ui.theme.OutfitDisplayFont
 import com.example.ui.theme.PorcelainSurface
 import com.example.ui.theme.PureWhite
+import com.example.ui.theme.RacingRed
 import com.example.ui.theme.SlateAccent
 import com.example.ui.theme.WarmGold
 import com.example.ui.theme.WarmGoldSoft
@@ -79,14 +79,14 @@ import com.google.firebase.auth.FirebaseUser
 
 @Composable
 fun CommunityScreen(
-    viewModel: CarSpotterViewModel
+    viewModel: CarSpotterViewModel,
+    authUser: FirebaseUser,
+    onSignOut: () -> Unit
 ) {
     val leaderboard by viewModel.leaderboard.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
     val searchQuery by viewModel.playerSearchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
-    val authUser by viewModel.authUser.collectAsState()
-    val isAuthLoading by viewModel.isAuthLoading.collectAsState()
 
     var isSearchExpanded by remember { mutableStateOf(false) }
 
@@ -98,7 +98,6 @@ fun CommunityScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Editorial Screen Header with Search Toggle Button
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -123,7 +122,7 @@ fun CommunityScreen(
                         letterSpacing = (-0.5).sp
                     )
                     Text(
-                        text = "Leaderboards, spotter XP and player discovery",
+                        text = "Live spotter XP, standings, and real player discovery",
                         fontSize = 12.sp,
                         color = InkSecondary
                     )
@@ -148,7 +147,7 @@ fun CommunityScreen(
             }
         }
 
-        // Search Players Input Bar
+        // Player Discovery & Friend Search Panel
         item {
             AnimatedVisibility(visible = isSearchExpanded || searchQuery.isNotBlank()) {
                 Card(
@@ -186,7 +185,7 @@ fun CommunityScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("player_search_input"),
-                            placeholder = { Text("Search by name, tag, or car...", color = InkMuted, fontSize = 13.sp) },
+                            placeholder = { Text("Search by name, tag, or top car...", color = InkMuted, fontSize = 13.sp) },
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
                             trailingIcon = {
@@ -210,11 +209,15 @@ fun CommunityScreen(
             }
         }
 
-        // Search Results
-        if (searchQuery.isNotBlank()) {
+        // Real Spotter Search / Discovery List
+        if (isSearchExpanded || searchQuery.isNotBlank()) {
             item {
                 Text(
-                    text = "SEARCH RESULTS (${searchResults.size})",
+                    text = if (searchQuery.isBlank()) {
+                        "DISCOVER SPOTTERS (${searchResults.size})"
+                    } else {
+                        "SEARCH RESULTS (${searchResults.size})"
+                    },
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = InkMuted,
@@ -227,18 +230,26 @@ fun CommunityScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 28.dp),
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(PorcelainSurface)
+                            .border(1.dp, HairlineBorder, RoundedCornerShape(16.dp))
+                            .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No players found matching \"$searchQuery\"",
+                            text = if (searchQuery.isBlank()) {
+                                "No other spotter accounts have joined yet. Invite a friend to sign in!"
+                            } else {
+                                "No spotters found matching \"$searchQuery\""
+                            },
                             color = InkMuted,
-                            fontSize = 13.sp
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             } else {
-                items(searchResults) { player ->
+                items(searchResults, key = { it.id }) { player ->
                     PlayerResultCard(
                         player = player,
                         onToggleFriend = { viewModel.toggleFriend(player.id) }
@@ -247,36 +258,35 @@ fun CommunityScreen(
             }
         }
 
-        // Profile & XP Rank Banner + Leaderboard (when not searching)
         if (searchQuery.isBlank()) {
             item {
                 ProfileStatusCard(
                     userProfile = userProfile,
                     authUser = authUser,
-                    isLoading = isAuthLoading,
-                    onSignIn = { viewModel.signInWithGoogle() },
-                    onSignOut = { viewModel.signOut() }
+                    onSignOut = onSignOut
                 )
+            }
+
+            if (leaderboard.size >= 3) {
+                item {
+                    Text(
+                        text = "GLOBAL PODIUM",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = InkMuted,
+                        letterSpacing = 1.4.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
+                item {
+                    PodiumSection(leaderboard = leaderboard)
+                }
             }
 
             item {
                 Text(
-                    text = "GLOBAL PODIUM",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = InkMuted,
-                    letterSpacing = 1.4.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-
-            item {
-                PodiumSection(leaderboard = leaderboard)
-            }
-
-            item {
-                Text(
-                    text = "ALL RANKED SPOTTERS",
+                    text = "ALL RANKED SPOTTERS (${leaderboard.size})",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = InkMuted,
@@ -285,7 +295,7 @@ fun CommunityScreen(
                 )
             }
 
-            items(leaderboard) { entry ->
+            items(leaderboard, key = { it.userId.ifBlank { "${it.rank}_${it.username}" } }) { entry ->
                 LeaderboardRow(entry = entry)
             }
         }
@@ -320,21 +330,31 @@ private fun PlayerResultCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(CobaltSoft)
-                        .border(1.dp, CobaltAccent.copy(alpha = 0.25f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = player.username.take(1).uppercase(),
-                        fontFamily = OutfitDisplayFont,
-                        color = CobaltAccent,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                if (!player.avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = player.avatarUrl,
+                        contentDescription = player.username,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
                     )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(CobaltSoft)
+                            .border(1.dp, CobaltAccent.copy(alpha = 0.25f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = player.username.take(1).uppercase(),
+                            fontFamily = OutfitDisplayFont,
+                            color = CobaltAccent,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -393,9 +413,7 @@ private fun PlayerResultCard(
 @Composable
 private fun ProfileStatusCard(
     userProfile: UserProfile,
-    authUser: FirebaseUser?,
-    isLoading: Boolean,
-    onSignIn: () -> Unit,
+    authUser: FirebaseUser,
     onSignOut: () -> Unit
 ) {
     Card(
@@ -410,8 +428,11 @@ private fun ProfileStatusCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (authUser?.photoUrl != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (authUser.photoUrl != null) {
                         AsyncImage(
                             model = authUser.photoUrl,
                             contentDescription = "Avatar",
@@ -442,14 +463,14 @@ private fun ProfileStatusCard(
 
                     Column {
                         Text(
-                            text = authUser?.displayName ?: userProfile.username,
+                            text = authUser.displayName?.takeIf { it.isNotBlank() } ?: userProfile.username,
                             fontFamily = OutfitDisplayFont,
                             color = InkPrimary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = userProfile.rankTitle,
+                            text = "${userProfile.rankTitle} • Rank #${userProfile.globalRank}",
                             color = CobaltAccent,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold
@@ -457,43 +478,21 @@ private fun ProfileStatusCard(
                     }
                 }
 
-                if (authUser == null) {
-                    Button(
-                        onClick = onSignIn,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = InkPrimary,
-                            contentColor = PureWhite
-                        ),
-                        shape = RoundedCornerShape(999.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp),
-                        enabled = !isLoading,
-                        modifier = Modifier.testTag("google_signin_button")
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = PureWhite,
-                                modifier = Modifier.size(14.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Login,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text("Sign In", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                } else {
-                    IconButton(onClick = onSignOut, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Sign Out",
-                            tint = InkMuted,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                OutlinedButton(
+                    onClick = onSignOut,
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, RacingRed.copy(alpha = 0.35f)),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.testTag("signout_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = "Sign Out",
+                        tint = RacingRed,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text("Sign Out", color = RacingRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -648,7 +647,7 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                 Text(
                     text = "#${entry.rank}",
                     fontFamily = OutfitDisplayFont,

@@ -20,16 +20,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -47,9 +49,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
 import com.example.model.CarSpot
 import com.example.model.FriendActivity
+import com.example.model.RarityTier
+import com.example.model.SpotterProfile
 import com.example.ui.CarSpotterViewModel
+import com.example.ui.TabDestination
 import com.example.ui.theme.CobaltAccent
 import com.example.ui.theme.CobaltSoft
 import com.example.ui.theme.HairlineBorder
@@ -63,13 +69,21 @@ import com.example.ui.theme.RacingRed
 import com.example.ui.theme.WarmGold
 import com.example.ui.theme.WarmGoldSoft
 
+private data class BattleOpponent(
+    val username: String,
+    val topCar: String,
+    val horsepower: Int,
+    val topSpeedMph: Int
+)
+
 @Composable
 fun FriendsScreen(
     viewModel: CarSpotterViewModel
 ) {
+    val addedFriends by viewModel.addedFriends.collectAsState()
     val friendsFeed by viewModel.friendsFeed.collectAsState()
     val allSpots by viewModel.allSpots.collectAsState()
-    var compareFriend by remember { mutableStateOf<FriendActivity?>(null) }
+    var battleOpponent by remember { mutableStateOf<BattleOpponent?>(null) }
 
     LazyColumn(
         modifier = Modifier
@@ -79,7 +93,6 @@ fun FriendsScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Editorial Screen Header
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -104,7 +117,7 @@ fun FriendsScreen(
                         letterSpacing = (-0.5).sp
                     )
                     Text(
-                        text = "Live exotic spots and garage head-to-head battles",
+                        text = "Real friend sightings and garage head-to-head battles",
                         fontSize = 12.sp,
                         color = InkSecondary
                     )
@@ -154,7 +167,7 @@ fun FriendsScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "GARAGE BATTLES ACTIVE",
+                                text = "GARAGE BATTLES",
                                 color = WarmGold,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
@@ -163,16 +176,29 @@ fun FriendsScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Challenge a friend to compare your top horsepower and rarity score.",
+                            text = if (addedFriends.isNotEmpty()) {
+                                "Challenge a friend to compare your real top horsepower and speed."
+                            } else {
+                                "Add fellow spotters in Community to compare garages head-to-head."
+                            },
                             color = InkSecondary,
                             fontSize = 12.sp
                         )
                     }
 
-                    if (friendsFeed.isNotEmpty()) {
-                        Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    if (addedFriends.isNotEmpty()) {
+                        val topFriend = addedFriends.first()
                         Button(
-                            onClick = { compareFriend = friendsFeed.first() },
+                            onClick = {
+                                battleOpponent = BattleOpponent(
+                                    username = topFriend.username,
+                                    topCar = topFriend.topCar.ifBlank { "No Spots Yet" },
+                                    horsepower = topFriend.topHorsepower,
+                                    topSpeedMph = topFriend.topSpeedMph
+                                )
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = InkPrimary,
                                 contentColor = PureWhite
@@ -182,29 +208,154 @@ fun FriendsScreen(
                         ) {
                             Text("Quick Battle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
+                    } else {
+                        Button(
+                            onClick = { viewModel.setTab(TabDestination.COMMUNITY) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = InkPrimary,
+                                contentColor = PureWhite
+                            ),
+                            shape = RoundedCornerShape(999.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
+                            modifier = Modifier.testTag("find_friends_button")
+                        ) {
+                            Text("Find Friends", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
         }
 
-        // Section Title
-        item {
-            Text(
-                text = "RECENT FRIEND SIGHTINGS (${friendsFeed.size})",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = InkMuted,
-                letterSpacing = 1.3.sp,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
+        if (addedFriends.isEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp)
+                        .testTag("friends_empty_state"),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = PorcelainSurface),
+                    border = BorderStroke(1.dp, HairlineBorder)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(PureWhite)
+                                .border(1.dp, HairlineBorder, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PersonSearch,
+                                contentDescription = null,
+                                tint = CobaltAccent,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "No friends connected yet",
+                            fontFamily = OutfitDisplayFont,
+                            color = InkPrimary,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Search real CarSpotter accounts in the Community tab to follow their spotted cars and battle garages.",
+                            color = InkSecondary,
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedButton(
+                            onClick = { viewModel.setTab(TabDestination.COMMUNITY) },
+                            shape = RoundedCornerShape(999.dp),
+                            border = BorderStroke(1.dp, HairlineBorder)
+                        ) {
+                            Text("Browse Community", color = InkPrimary, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+        } else {
+            item {
+                Text(
+                    text = "YOUR FRIENDS (${addedFriends.size})",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = InkMuted,
+                    letterSpacing = 1.3.sp,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
 
-        // Friends Feed Items
-        items(friendsFeed) { activity ->
-            FriendSpotCard(
-                activity = activity,
-                onBattleClick = { compareFriend = activity }
-            )
+            items(addedFriends, key = { it.userId }) { friend ->
+                FriendRosterCard(
+                    friend = friend,
+                    onBattleClick = {
+                        battleOpponent = BattleOpponent(
+                            username = friend.username,
+                            topCar = friend.topCar.ifBlank { "No Spots Yet" },
+                            horsepower = friend.topHorsepower,
+                            topSpeedMph = friend.topSpeedMph
+                        )
+                    },
+                    onRemoveClick = { viewModel.toggleFriend(friend.userId) }
+                )
+            }
+
+            item {
+                Text(
+                    text = "RECENT FRIEND SIGHTINGS (${friendsFeed.size})",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = InkMuted,
+                    letterSpacing = 1.3.sp,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+
+            if (friendsFeed.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(PorcelainSurface)
+                            .border(1.dp, HairlineBorder, RoundedCornerShape(16.dp))
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Your friends haven't snapped a car yet. Check back soon!",
+                            color = InkSecondary,
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                items(friendsFeed, key = { it.id }) { activity ->
+                    FriendSpotCard(
+                        activity = activity,
+                        onBattleClick = {
+                            battleOpponent = BattleOpponent(
+                                username = activity.username,
+                                topCar = activity.friendTopCar.ifBlank { activity.carName },
+                                horsepower = activity.friendTopHorsepower,
+                                topSpeedMph = activity.friendTopSpeedMph
+                            )
+                        }
+                    )
+                }
+            }
         }
 
         item {
@@ -212,14 +363,110 @@ fun FriendsScreen(
         }
     }
 
-    // Garage Battle Comparison Dialog
-    if (compareFriend != null) {
+    if (battleOpponent != null) {
         val userBestCar = allSpots.maxByOrNull { it.horsepower }
         GarageBattleDialog(
-            friend = compareFriend!!,
+            opponent = battleOpponent!!,
             userBestCar = userBestCar,
-            onDismiss = { compareFriend = null }
+            onDismiss = { battleOpponent = null }
         )
+    }
+}
+
+@Composable
+private fun FriendRosterCard(
+    friend: SpotterProfile,
+    onBattleClick: () -> Unit,
+    onRemoveClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("friend_roster_${friend.userId}"),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = PureWhite),
+        border = BorderStroke(1.dp, HairlineBorder)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                if (!friend.avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = friend.avatarUrl,
+                        contentDescription = friend.username,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(CobaltSoft)
+                            .border(1.dp, CobaltAccent.copy(alpha = 0.25f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = friend.username.take(1).uppercase(),
+                            fontFamily = OutfitDisplayFont,
+                            color = CobaltAccent,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = friend.username,
+                        color = InkPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${friend.totalScore} pts • ${friend.totalSpotsCount} cars",
+                        color = InkMuted,
+                        fontSize = 11.sp
+                    )
+                    if (friend.topCar.isNotBlank()) {
+                        Text(
+                            text = "Best: ${friend.topCar}",
+                            color = CobaltAccent,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Button(
+                    onClick = onBattleClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = InkPrimary,
+                        contentColor = PureWhite
+                    ),
+                    shape = RoundedCornerShape(999.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text("Battle", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+                OutlinedButton(
+                    onClick = onRemoveClick,
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, HairlineBorder),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text("Remove", color = InkMuted, fontSize = 11.sp)
+                }
+            }
+        }
     }
 }
 
@@ -246,21 +493,31 @@ private fun FriendSpotCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(CobaltSoft)
-                            .border(1.dp, CobaltAccent.copy(alpha = 0.25f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = activity.username.take(1).uppercase(),
-                            fontFamily = OutfitDisplayFont,
-                            color = CobaltAccent,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                    if (!activity.avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = activity.avatarUrl,
+                            contentDescription = activity.username,
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(CobaltSoft)
+                                .border(1.dp, CobaltAccent.copy(alpha = 0.25f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = activity.username.take(1).uppercase(),
+                                fontFamily = OutfitDisplayFont,
+                                color = CobaltAccent,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(10.dp))
@@ -291,7 +548,6 @@ private fun FriendSpotCard(
                     }
                 }
 
-                // Battle pill button
                 Button(
                     onClick = onBattleClick,
                     colors = ButtonDefaults.buttonColors(
@@ -303,7 +559,7 @@ private fun FriendSpotCard(
                     border = BorderStroke(1.dp, HairlineBorder)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CompareArrows,
+                        imageVector = Icons.AutoMirrored.Filled.CompareArrows,
                         contentDescription = null,
                         tint = CobaltAccent,
                         modifier = Modifier.size(14.dp)
@@ -315,7 +571,6 @@ private fun FriendSpotCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Car Sighting Details
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -379,10 +634,19 @@ private fun FriendSpotCard(
 
 @Composable
 private fun GarageBattleDialog(
-    friend: FriendActivity,
+    opponent: BattleOpponent,
     userBestCar: CarSpot?,
     onDismiss: () -> Unit
 ) {
+    val myHp = userBestCar?.horsepower ?: 0
+    val friendHp = opponent.horsepower
+    val winnerLabel = when {
+        myHp > friendHp -> "Your Garage Takes the Lead"
+        friendHp > myHp -> "${opponent.username} Leads on Horsepower"
+        myHp == 0 && friendHp == 0 -> "Spot a car to set your benchmark"
+        else -> "Dead-Even Horsepower Tie"
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -406,7 +670,7 @@ private fun GarageBattleDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CompareArrows,
+                        imageVector = Icons.AutoMirrored.Filled.CompareArrows,
                         contentDescription = null,
                         tint = CobaltAccent,
                         modifier = Modifier.size(24.dp)
@@ -425,22 +689,22 @@ private fun GarageBattleDialog(
                 )
 
                 Text(
-                    text = "Head-to-head spec comparison",
-                    color = InkMuted,
-                    fontSize = 12.sp
+                    text = winnerLabel,
+                    color = CobaltAccent,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
                 HorizontalDivider(thickness = 1.dp, color = HairlineBorder)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Comparison grid
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // User Side
                     Column(
                         modifier = Modifier.weight(1f),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -462,7 +726,7 @@ private fun GarageBattleDialog(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "${userBestCar?.horsepower ?: 0} HP",
+                            text = "$myHp HP",
                             fontFamily = OutfitDisplayFont,
                             color = InkPrimary,
                             fontSize = 16.sp,
@@ -475,7 +739,6 @@ private fun GarageBattleDialog(
                         )
                     }
 
-                    // VS Divider
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -492,13 +755,12 @@ private fun GarageBattleDialog(
                         )
                     }
 
-                    // Friend Side
                     Column(
                         modifier = Modifier.weight(1f),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = friend.username.uppercase(),
+                            text = opponent.username.uppercase(),
                             color = WarmGold,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -506,7 +768,7 @@ private fun GarageBattleDialog(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = friend.carName,
+                            text = opponent.topCar,
                             color = InkPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
@@ -514,14 +776,14 @@ private fun GarageBattleDialog(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "740 HP",
+                            text = "$friendHp HP",
                             fontFamily = OutfitDisplayFont,
                             color = WarmGold,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "206 MPH",
+                            text = "${opponent.topSpeedMph} MPH",
                             color = InkSecondary,
                             fontSize = 11.sp
                         )

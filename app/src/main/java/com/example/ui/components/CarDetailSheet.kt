@@ -67,7 +67,9 @@ import java.util.Locale
 fun CarDetailSheet(
     car: CarSpot,
     onDismiss: () -> Unit,
-    onDelete: (CarSpot) -> Unit
+    onDelete: (CarSpot) -> Unit,
+    canDelete: Boolean = true,
+    spottedByLabel: String? = null
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -192,6 +194,16 @@ fun CarDetailSheet(
                     text = "${car.locationName} • $dateFormatted",
                     color = InkSecondary,
                     fontSize = 12.sp
+                )
+            }
+
+            if (!spottedByLabel.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = spottedByLabel,
+                    color = CobaltAccent,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
 
@@ -384,22 +396,24 @@ fun CarDetailSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (canDelete) {
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // Delete button
-            OutlinedButton(
-                onClick = { onDelete(car) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .testTag("detail_delete_button"),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = RacingRed),
-                border = BorderStroke(1.dp, RacingRed.copy(alpha = 0.45f)),
-                shape = RoundedCornerShape(999.dp)
-            ) {
-                Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Remove from Garage", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                // Delete button
+                OutlinedButton(
+                    onClick = { onDelete(car) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("detail_delete_button"),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = RacingRed),
+                    border = BorderStroke(1.dp, RacingRed.copy(alpha = 0.45f)),
+                    shape = RoundedCornerShape(999.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Remove from Garage", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }
